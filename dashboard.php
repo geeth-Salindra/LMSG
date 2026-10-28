@@ -439,7 +439,7 @@ $csrfToken = $_SESSION['csrf_token'];
                 </div>
                 <?php endif; ?>
                 <div class="form-field full-width">
-                  <label for="newLearnerPassword">Temporary password (minimum 6 characters)</label>
+                  <label for="newLearnerPassword">Password (minimum 6 characters)</label>
                   <input id="newLearnerPassword" name="password" type="password" minlength="6" required>
                 </div>
                 <p class="manage-message" id="createLearnerMessage" aria-live="polite"></p>
@@ -491,7 +491,7 @@ $csrfToken = $_SESSION['csrf_token'];
               <input class="learner-search" id="instituteAdminName" name="admin_name" maxlength="100" required>
               <label for="instituteAdminEmail">Institute administrator email</label>
               <input class="learner-search" id="instituteAdminEmail" name="admin_email" type="email" maxlength="150" required>
-              <label for="instituteAdminPassword">Temporary password (minimum 6 characters)</label>
+              <label for="instituteAdminPassword">Password (minimum 6 characters)</label>
               <input class="learner-search" id="instituteAdminPassword" name="admin_password" type="password" minlength="6" required>
               <button class="learner-action" type="submit" id="createInstituteButton">Create institute</button>
             </form>
@@ -540,7 +540,7 @@ $csrfToken = $_SESSION['csrf_token'];
                       </select>
                     </div>
                     <div class="form-field full-width">
-                      <label for="newInstituteAdminPassword">Temporary password (minimum 6 characters)</label>
+                      <label for="newInstituteAdminPassword">Password (minimum 6 characters)</label>
                       <input id="newInstituteAdminPassword" name="admin_password" type="password" minlength="6" required>
                     </div>
                     <p class="manage-message create-institute-admin-message" id="createInstituteAdminMessage" aria-live="polite"></p>
@@ -616,7 +616,7 @@ $csrfToken = $_SESSION['csrf_token'];
                     <input id="myInstituteAdminEmail" name="admin_email" type="email" maxlength="150" required>
                   </div>
                   <div class="form-field full-width">
-                    <label for="myInstituteAdminPassword">Temporary password (minimum 6 characters)</label>
+                    <label for="myInstituteAdminPassword">Password (minimum 6 characters)</label>
                     <input id="myInstituteAdminPassword" name="admin_password" type="password" minlength="6" required>
                   </div>
                   <p class="manage-message create-institute-admin-message" id="createMyInstituteAdminMessage" aria-live="polite"></p>
