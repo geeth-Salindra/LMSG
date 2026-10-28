@@ -234,21 +234,37 @@ try {
     }
 
     if (is_array($data) && ($data['action'] ?? '') === 'change_role') {
-        if (!$isInstituteAdmin) {
-            manageJsonReply(403, false, 'Institute Admin access is required to change roles.');
+        if (!$isSuperAdmin && !$isInstituteAdmin) {
+            manageJsonReply(403, false, 'Administrator access is required to change roles.');
         }
 
         $learnerId = filter_var($data['learner_id'] ?? null, FILTER_VALIDATE_INT);
         $roleName = $data['role_name'] ?? '';
-        $instituteId = (int)($_SESSION['institute_id'] ?? 0);
+        $instituteId = $isInstituteAdmin ? (int)($_SESSION['institute_id'] ?? 0) : 0;
         if ($learnerId === false || $learnerId === null || $learnerId < 1
             || !in_array($roleName, ['learner', 'institute_admin'], true)
-            || $instituteId < 1
+            || ($isInstituteAdmin && $instituteId < 1)
         ) {
             manageJsonReply(422, false, 'A valid account and institute role are required.');
         }
         if ($learnerId === (int)($_SESSION['user_id'] ?? 0)) {
             manageJsonReply(422, false, 'You cannot change your own institute role.');
+        }
+
+        if ($isSuperAdmin) {
+            $findInstituteId = $pdo->prepare(
+                "SELECT learners.institute_id
+                 FROM learners
+                 INNER JOIN roles ON roles.id = learners.role_id
+                 WHERE learners.id = ?
+                   AND roles.name IN ('learner', 'institute_admin')"
+            );
+            $findInstituteId->execute([$learnerId]);
+            $targetInstituteId = $findInstituteId->fetchColumn();
+            if ($targetInstituteId === false || (int)$targetInstituteId < 1) {
+                manageJsonReply(404, false, 'Account not found or not assigned to an institute.');
+            }
+            $instituteId = (int)$targetInstituteId;
         }
 
         $pdo->beginTransaction();

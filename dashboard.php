@@ -468,6 +468,9 @@ $csrfToken = $_SESSION['csrf_token'];
                   <?php if ($isInstituteAdmin): ?>
                   <th scope="col">Role action</th>
                   <?php endif; ?>
+                  <?php if ($isSuperAdmin): ?>
+                  <th scope="col">Role action</th>
+                  <?php endif; ?>
                 </tr>
               </thead>
               <tbody id="learnerRows"></tbody>
@@ -827,8 +830,8 @@ $csrfToken = $_SESSION['csrf_token'];
         }
         row.appendChild(actionCell);
       }
-      if (isInstituteAdmin) {
-        const roleActionCell = document.createElement('td');
+      const roleActionCell = document.createElement('td');
+      if (learner.role_name === 'learner') {
         const roleAction = document.createElement('button');
         roleAction.type = 'button';
         roleAction.className = 'learner-action';
@@ -837,8 +840,10 @@ $csrfToken = $_SESSION['csrf_token'];
           updateLearnerRole(learner, 'institute_admin', roleAction);
         });
         roleActionCell.appendChild(roleAction);
-        row.appendChild(roleActionCell);
+      } else {
+        roleActionCell.textContent = '—';
       }
+      row.appendChild(roleActionCell);
       learnerRows.appendChild(row);
     });
 
@@ -976,7 +981,14 @@ $csrfToken = $_SESSION['csrf_token'];
           });
           actionCell.append(approve, remove);
         } else {
-          actionCell.textContent = '—';
+          const demote = document.createElement('button');
+          demote.type = 'button';
+          demote.className = 'learner-action deactivate';
+          demote.textContent = 'Demote to Learner';
+          demote.addEventListener('click', function () {
+            updateLearnerRole(admin, 'learner', demote);
+          });
+          actionCell.appendChild(demote);
         }
         row.appendChild(actionCell);
       }
