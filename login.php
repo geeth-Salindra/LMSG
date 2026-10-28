@@ -123,7 +123,7 @@ if (!empty($_SESSION['user_id']) || !empty($_SESSION['learner_id'])) {
 
     <div id="message"></div>
 
-    <p class="switch">New here? <a href="register.php">Create an account</a></p>
+    <p class="switch">Need an Institute Admin account? <a href="register.php">Request access</a></p>
   </div>
 
 <script>

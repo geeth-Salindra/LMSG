@@ -101,7 +101,7 @@ try {
                  ORDER BY institutes.name, learners.full_name, learners.id"
             )->fetchAll();
         }
-        manageJsonReply(200, true, 'Learners loaded.', $extra);
+        manageJsonReply(200, true, 'Accounts loaded.', $extra);
     }
 
     $sentToken = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
@@ -111,6 +111,51 @@ try {
     }
 
     $data = json_decode(file_get_contents('php://input'), true);
+    if (is_array($data) && in_array(($data['action'] ?? ''), ['approve_institute_admin', 'delete_institute_admin'], true)) {
+        if (!$isSuperAdmin) {
+            manageJsonReply(403, false, 'Super Admin access is required to manage institute admin requests.');
+        }
+        $adminId = filter_var($data['admin_id'] ?? null, FILTER_VALIDATE_INT);
+        if ($adminId === false || $adminId === null || $adminId < 1) {
+            manageJsonReply(422, false, 'A valid institute admin is required.');
+        }
+
+        $pdo->beginTransaction();
+        $findAdmin = $pdo->prepare(
+            "SELECT learners.id, learners.is_active
+             FROM learners
+             INNER JOIN roles ON roles.id = learners.role_id
+             WHERE learners.id = ? AND roles.name = 'institute_admin'
+             FOR UPDATE"
+        );
+        $findAdmin->execute([$adminId]);
+        $admin = $findAdmin->fetch();
+        if (!$admin) {
+            $pdo->rollBack();
+            manageJsonReply(404, false, 'Institute admin request not found.');
+        }
+
+        if ($data['action'] === 'approve_institute_admin') {
+            if ((bool)$admin['is_active']) {
+                $pdo->rollBack();
+                manageJsonReply(409, false, 'This institute admin is already active.');
+            }
+            $approveAdmin = $pdo->prepare('UPDATE learners SET is_active = 1 WHERE id = ?');
+            $approveAdmin->execute([$adminId]);
+            $pdo->commit();
+            manageJsonReply(200, true, 'Institute admin approved.');
+        }
+
+        if ((bool)$admin['is_active']) {
+            $pdo->rollBack();
+            manageJsonReply(409, false, 'Only pending institute admin requests can be deleted here.');
+        }
+        $deleteAdmin = $pdo->prepare('DELETE FROM learners WHERE id = ?');
+        $deleteAdmin->execute([$adminId]);
+        $pdo->commit();
+        manageJsonReply(200, true, 'Institute admin request deleted.');
+    }
+
     if (is_array($data) && ($data['action'] ?? '') === 'create_learner') {
         $fullName = trim($data['full_name'] ?? '');
         $email = trim($data['email'] ?? '');
@@ -305,9 +350,10 @@ try {
             manageJsonReply(409, false, 'That email address is already registered.');
         }
 
+        $adminIsActive = $isSuperAdmin ? 1 : 0;
         $createAdmin = $pdo->prepare(
-            "INSERT INTO learners (full_name, email, password, role_id, institute_id)
-             SELECT ?, ?, ?, roles.id, ?
+            "INSERT INTO learners (full_name, email, password, role_id, institute_id, is_active)
+             SELECT ?, ?, ?, roles.id, ?, ?
              FROM roles
              WHERE roles.name = 'institute_admin'"
         );
@@ -315,14 +361,17 @@ try {
             $adminName,
             $adminEmail,
             password_hash($adminPassword, PASSWORD_DEFAULT),
-            $instituteId
+            $instituteId,
+            $adminIsActive
         ]);
         if ($createAdmin->rowCount() !== 1) {
             $pdo->rollBack();
             manageJsonReply(500, false, 'Institute administrator role is missing. Run the migrations.');
         }
         $pdo->commit();
-        manageJsonReply(201, true, 'Institute administrator created.');
+        manageJsonReply(201, true, $isSuperAdmin
+            ? 'Institute administrator created.'
+            : 'Institute administrator request submitted for Super Admin approval.');
     }
 
     if (is_array($data) && ($data['action'] ?? '') === 'create_institute') {

@@ -7,7 +7,7 @@ require_once __DIR__ . '/Api/register_handler.php';
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Learner Registration · LMSG</title>
+<title>Institute Admin Registration · LMSG</title>
 <style>
   :root{
     --bg:#102519;
@@ -99,11 +99,11 @@ require_once __DIR__ . '/Api/register_handler.php';
 <body>
 
   <div class="card">
-    <h2>Learner Registration</h2>
-    <p class="subtitle">Create your account to start learning</p>
+    <h2>Institute Admin Registration</h2>
+    <p class="subtitle">Request an account. A Super Admin must approve it before you can sign in.</p>
 
     <form id="registerForm">
-      <label>Full Name
+      <label>Administrator Name
         <input type="text" id="full_name" maxlength="100" required>
       </label>
       <label>Email
@@ -120,7 +120,7 @@ require_once __DIR__ . '/Api/register_handler.php';
       <label>Confirm Password
         <input type="password" id="confirm_password" required>
       </label>
-      <button type="submit" id="btn">Register</button>
+      <button type="submit" id="btn">Submit request</button>
     </form>
 
     <div id="message"></div>

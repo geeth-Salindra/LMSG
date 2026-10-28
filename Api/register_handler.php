@@ -1,7 +1,7 @@
 <?php
 // This file is used in two ways:
 //  1) register.php includes it to get the security token ($csrfToken)
-//  2) the form's fetch() sends a POST request to it to register a learner
+//  2) the form's fetch() sends a POST request to request an institute admin account
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -88,19 +88,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hash = password_hash($password, PASSWORD_DEFAULT);
 
         $insert = $pdo->prepare(
-            "INSERT INTO learners (full_name, email, password, role_id, institute_id)
-             SELECT ?, ?, ?, roles.id, ?
+            "INSERT INTO learners (full_name, email, password, role_id, institute_id, is_active)
+             SELECT ?, ?, ?, roles.id, ?, 0
              FROM roles
              INNER JOIN institutes ON institutes.id = ? AND institutes.is_active = 1
-             WHERE roles.name = 'learner'"
+             WHERE roles.name = 'institute_admin'"
         );
         $insert->execute([$fullName, $email, $hash, $instituteId, $instituteId]);
         if ($insert->rowCount() !== 1) {
-            error_log('[register_handler] Learner role is missing. Run the role migration.');
+            error_log('[register_handler] Institute admin role is missing. Run the role migration.');
             jsonReply(500, false, 'Registration is unavailable. Please contact the system administrator.');
         }
 
-        jsonReply(201, true, 'Registration successful!');
+        jsonReply(201, true, 'Your institute admin request was submitted. You can sign in after a Super Admin approves it.');
 
     } catch (PDOException $e) {
         error_log('[register_handler] ' . $e->getMessage());

@@ -462,7 +462,7 @@ $csrfToken = $_SESSION['csrf_token'];
           <section class="manage-panel" id="institute-admins-panel" role="tabpanel" hidden>
             <div class="box">
               <h3>Institute Admins</h3>
-            <p>Create administrators and view which institute each administrator belongs to.</p>
+            <p><?= $isSuperAdmin ? 'Review institute admin requests and view institute assignments.' : 'Request additional institute admins for your institute; a Super Admin must approve them.' ?></p>
             <form id="createInstituteAdminForm" class="create-institute-admin-form">
               <label for="newInstituteAdminName">Administrator name</label>
               <input class="learner-search" id="newInstituteAdminName" name="admin_name" maxlength="100" required>
@@ -474,7 +474,7 @@ $csrfToken = $_SESSION['csrf_token'];
               </select>
               <label for="newInstituteAdminPassword">Temporary password (minimum 6 characters)</label>
               <input class="learner-search" id="newInstituteAdminPassword" name="admin_password" type="password" minlength="6" required>
-              <button class="learner-action" type="submit" id="createInstituteAdminButton">Create institute admin</button>
+              <button class="learner-action" type="submit" id="createInstituteAdminButton"><?= $isSuperAdmin ? 'Create institute admin' : 'Request institute admin' ?></button>
             </form>
             <p class="manage-message create-institute-admin-message" id="createInstituteAdminMessage" aria-live="polite"></p>
             <p class="manage-message" id="manageInstituteAdminsMessage" aria-live="polite">Loading institute admins...</p>
@@ -486,6 +486,9 @@ $csrfToken = $_SESSION['csrf_token'];
                       <th scope="col">Email</th>
                       <th scope="col">Member since</th>
                       <th scope="col">Status</th>
+                      <?php if ($isSuperAdmin): ?>
+                      <th scope="col">Action</th>
+                      <?php endif; ?>
                     </tr>
                   </thead>
                   <tbody id="instituteAdminRows"></tbody>
@@ -834,9 +837,32 @@ $csrfToken = $_SESSION['csrf_token'];
       const status = document.createElement('span');
       const active = Number(admin.is_active) === 1;
       status.className = 'learner-status ' + (active ? 'active' : 'inactive');
-      status.textContent = active ? 'Active' : 'Deactivated';
+      status.textContent = active ? 'Active' : 'Awaiting approval';
       statusCell.appendChild(status);
       row.append(name, email, joined, statusCell);
+      if (!isInstituteAdmin) {
+        const actionCell = document.createElement('td');
+        if (!active) {
+          const approve = document.createElement('button');
+          approve.type = 'button';
+          approve.className = 'learner-action';
+          approve.textContent = 'Approve';
+          approve.addEventListener('click', function () {
+            updateInstituteAdmin(admin, 'approve_institute_admin', approve);
+          });
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'learner-action deactivate';
+          remove.textContent = 'Delete';
+          remove.addEventListener('click', function () {
+            updateInstituteAdmin(admin, 'delete_institute_admin', remove);
+          });
+          actionCell.append(approve, remove);
+        } else {
+          actionCell.textContent = '—';
+        }
+        row.appendChild(actionCell);
+      }
       if (isInstituteAdmin) {
         const actionCell = document.createElement('td');
         const demote = document.createElement('button');
@@ -1071,6 +1097,37 @@ $csrfToken = $_SESSION['csrf_token'];
     } catch (error) {
       message.textContent = error.message || 'Could not change the account role.';
       message.classList.add('error');
+      action.disabled = false;
+    }
+  }
+
+  async function updateInstituteAdmin(admin, actionName, action) {
+    if (actionName === 'delete_institute_admin'
+      && !window.confirm('Delete this pending institute admin request?')) {
+      return;
+    }
+    action.disabled = true;
+    manageInstituteAdminsMessage.textContent = '';
+    manageInstituteAdminsMessage.classList.remove('error');
+    try {
+      const response = await fetch(manageApiUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': manageCsrfToken
+        },
+        body: JSON.stringify({ action: actionName, admin_id: admin.id })
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Could not manage the institute admin request.');
+      }
+      manageInstituteAdminsMessage.textContent = result.message;
+      await loadLearners();
+    } catch (error) {
+      manageInstituteAdminsMessage.textContent = error.message || 'Could not manage the institute admin request.';
+      manageInstituteAdminsMessage.classList.add('error');
       action.disabled = false;
     }
   }
