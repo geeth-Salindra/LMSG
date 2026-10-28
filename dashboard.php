@@ -437,8 +437,8 @@ $csrfToken = $_SESSION['csrf_token'];
           <section class="manage-panel" id="institute-list-panel" role="tabpanel">
           <div class="box">
             <h3>Manage Institutes</h3>
-            <p>Create an institute and its first institute administrator account.</p>
-            <form id="createInstituteForm">
+            <p>Create the single institute and its first institute administrator account.</p>
+            <form id="createInstituteForm" hidden>
               <label for="instituteName">Institute name</label>
               <input class="learner-search" id="instituteName" name="name" maxlength="150" required>
               <label for="instituteAdminName">Institute administrator name</label>
@@ -450,6 +450,7 @@ $csrfToken = $_SESSION['csrf_token'];
               <button class="learner-action" type="submit" id="createInstituteButton">Create institute</button>
             </form>
             <p class="manage-message" id="manageInstitutesMessage" aria-live="polite"></p>
+            <p class="manage-message" id="instituteLimitMessage" aria-live="polite" hidden></p>
             <h3>Institutes</h3>
             <div class="learner-table-wrap">
               <table class="learner-table">
@@ -616,6 +617,7 @@ $csrfToken = $_SESSION['csrf_token'];
   const learnerSearch = document.getElementById('learnerSearch');
   const learnerRows = document.getElementById('learnerRows');
   const createInstituteForm = document.getElementById('createInstituteForm');
+  const instituteLimitMessage = document.getElementById('instituteLimitMessage');
   const createInstituteAdminForms = document.querySelectorAll('.create-institute-admin-form');
   const manageInstitutesMessage = document.getElementById('manageInstitutesMessage');
   const instituteRows = document.getElementById('instituteRows');
@@ -760,6 +762,11 @@ $csrfToken = $_SESSION['csrf_token'];
 
   function renderInstitutes(institutes) {
     instituteRows.replaceChildren();
+    createInstituteForm.hidden = institutes.length > 0;
+    instituteLimitMessage.hidden = institutes.length === 0;
+    instituteLimitMessage.textContent = institutes.length > 0
+      ? 'Only one institute can be configured. Activate the existing institute if it is deactivated.'
+      : '';
     if (newLearnerInstitute) {
       newLearnerInstitute.replaceChildren(new Option('Select an institute', ''));
       const activeInstitutes = institutes.filter(function (institute) {

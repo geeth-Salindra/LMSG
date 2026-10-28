@@ -390,6 +390,18 @@ try {
         }
 
         $pdo->beginTransaction();
+        $roleLock = $pdo->prepare("SELECT id FROM roles WHERE name = 'super_admin' FOR UPDATE");
+        $roleLock->execute();
+        if (!$roleLock->fetch()) {
+            $pdo->rollBack();
+            manageJsonReply(500, false, 'Super Admin role is missing. Run the migrations.');
+        }
+        $existingInstitute = $pdo->query('SELECT id FROM institutes LIMIT 1 FOR UPDATE');
+        if ($existingInstitute->fetch()) {
+            $pdo->rollBack();
+            manageJsonReply(409, false, 'Only one institute can be created.');
+        }
+
         $emailCheck = $pdo->prepare('SELECT id FROM learners WHERE email = ? FOR UPDATE');
         $emailCheck->execute([$adminEmail]);
         if ($emailCheck->fetch()) {

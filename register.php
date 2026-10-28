@@ -109,18 +109,14 @@ require_once __DIR__ . '/Api/register_handler.php';
       <label>Email
         <input type="email" id="email" maxlength="150" required>
       </label>
-      <label>Institute
-        <select id="institute_id" required>
-          <option value="">Loading institutes...</option>
-        </select>
-      </label>
+      <p class="subtitle" id="registrationInstitute">Loading institute information...</p>
       <label>Password
         <input type="password" id="password" required>
       </label>
       <label>Confirm Password
         <input type="password" id="confirm_password" required>
       </label>
-      <button type="submit" id="btn">Submit request</button>
+      <button type="submit" id="btn" disabled>Submit request</button>
     </form>
 
     <div id="message"></div>
@@ -134,7 +130,7 @@ require_once __DIR__ . '/Api/register_handler.php';
   const form    = document.getElementById('registerForm');
   const message = document.getElementById('message');
   const btn     = document.getElementById('btn');
-  const instituteSelect = document.getElementById('institute_id');
+  let instituteAvailable = false;
 
   fetch('Api/institutes_handler.php', { credentials: 'same-origin' })
     .then(function (response) {
@@ -146,18 +142,22 @@ require_once __DIR__ . '/Api/register_handler.php';
       });
     })
     .then(function (institutes) {
-      instituteSelect.replaceChildren(new Option('Select your institute', ''));
-      institutes.forEach(function (institute) {
-        instituteSelect.add(new Option(institute.name, institute.id));
-      });
-      btn.disabled = institutes.length === 0;
-      if (!institutes.length) {
-        message.textContent = 'No active institutes are available for registration.';
+      if (institutes.length === 1) {
+        document.getElementById('registrationInstitute').textContent =
+          'Institute: ' + institutes[0].name + ' (assigned automatically)';
+        instituteAvailable = true;
+        btn.disabled = false;
+      } else {
+        document.getElementById('registrationInstitute').textContent = 'Institute assignment unavailable.';
+        btn.disabled = true;
+        message.textContent = institutes.length === 0
+          ? 'No active institute is available for registration.'
+          : 'Registration is unavailable because more than one active institute is configured.';
         message.className = 'error';
       }
     })
     .catch(function (error) {
-      instituteSelect.replaceChildren(new Option('Institutes unavailable', ''));
+      document.getElementById('registrationInstitute').textContent = 'Institute information unavailable.';
       btn.disabled = true;
       message.textContent = error.message || 'Could not load institutes.';
       message.className = 'error';
@@ -165,6 +165,7 @@ require_once __DIR__ . '/Api/register_handler.php';
 
   form.addEventListener('submit', async function (e) {
     e.preventDefault();              // stop the normal page reload
+    if (!instituteAvailable) return;
     message.textContent = '';
     message.className = '';
     btn.disabled = true;
@@ -172,7 +173,6 @@ require_once __DIR__ . '/Api/register_handler.php';
     const payload = {
       full_name:        document.getElementById('full_name').value,
       email:            document.getElementById('email').value,
-      institute_id:     instituteSelect.value,
       password:         document.getElementById('password').value,
       confirm_password: document.getElementById('confirm_password').value
     };

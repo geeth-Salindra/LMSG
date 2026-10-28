@@ -46,10 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = trim($data['email'] ?? '');
     $password = $data['password'] ?? '';
     $confirm  = $data['confirm_password'] ?? '';
-    $instituteId = filter_var($data['institute_id'] ?? null, FILTER_VALIDATE_INT);
 
     // 3. Validate
-    if ($fullName === '' || $email === '' || $password === '' || $instituteId === false || $instituteId === null || $instituteId < 1) {
+    if ($fullName === '' || $email === '' || $password === '') {
         jsonReply(422, false, 'All fields are required.');
     }
     if (strlen($fullName) > 100) {
@@ -68,20 +67,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // 4. Save to the database
     try {
         $pdo = getConnection();
+        $pdo->beginTransaction();
+
+        $instituteCheck = $pdo->query(
+            'SELECT id FROM institutes WHERE is_active = 1 ORDER BY id FOR UPDATE'
+        );
+        $activeInstitutes = $instituteCheck->fetchAll();
+        if (count($activeInstitutes) !== 1) {
+            $pdo->rollBack();
+            jsonReply(409, false, count($activeInstitutes) === 0
+                ? 'Registration is unavailable because there is no active institute.'
+                : 'Registration is unavailable because more than one active institute is configured.');
+        }
+        $instituteId = (int)$activeInstitutes[0]['id'];
 
         // Is this email already registered?
         $check = $pdo->prepare("SELECT id FROM learners WHERE email = ?");
         $check->execute([$email]);
         if ($check->fetch()) {
+            $pdo->rollBack();
             jsonReply(409, false, 'This email is already registered.');
-        }
-
-        $instituteCheck = $pdo->prepare(
-            'SELECT id FROM institutes WHERE id = ? AND is_active = 1'
-        );
-        $instituteCheck->execute([$instituteId]);
-        if (!$instituteCheck->fetch()) {
-            jsonReply(422, false, 'Please select an active institute.');
         }
 
         // Never store plain passwords - hash them
@@ -96,13 +101,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
         $insert->execute([$fullName, $email, $hash, $instituteId, $instituteId]);
         if ($insert->rowCount() !== 1) {
+            $pdo->rollBack();
             error_log('[register_handler] Institute admin role is missing. Run the role migration.');
             jsonReply(500, false, 'Registration is unavailable. Please contact the system administrator.');
         }
 
+        $pdo->commit();
         jsonReply(201, true, 'Your institute admin request was submitted. You can sign in after a Super Admin approves it.');
 
     } catch (PDOException $e) {
+        if (isset($pdo) && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         error_log('[register_handler] ' . $e->getMessage());
         jsonReply(500, false, 'Server error. Did you run the migration?');
     }
