@@ -222,31 +222,6 @@ $csrfToken = $_SESSION['csrf_token'];
   .learner-action:disabled{opacity:.6;cursor:not-allowed;}
   .manage-message{margin:0 0 16px;color:var(--muted);font-size:14px;}
   .manage-message.error{color:#B91C1C;}
-  .survey-notice{margin:0 0 16px;padding:12px 16px;border:1px solid #B7DEC3;border-radius:10px;background:#EAF6EE;color:#237747;font-size:14px;}
-  .survey-list-message{margin:0;color:var(--muted);font-size:14px;}
-  .survey-list-message.error{color:#B91C1C;}
-  .survey-grid{display:grid;grid-template-columns:repeat(auto-fill,262px);align-items:start;gap:16px;margin-top:18px;}
-  .survey-card{display:flex;flex-direction:column;width:262px;min-height:378px;padding:18px 19px 19px;background:var(--card);border:1px solid var(--border);border-radius:8px;box-shadow:0 2px 6px rgba(15,35,22,.06);}
-  .survey-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:7px;}
-  .survey-card h3{min-width:0;margin:0;font-size:14px;line-height:1.3;overflow-wrap:anywhere;}
-  .survey-status{flex-shrink:0;padding:4px 10px;border:1px solid #83c9a0;border-radius:999px;background:#d9f7e5;color:#187441;font-size:11px;font-weight:600;line-height:1.2;text-transform:capitalize;}
-  .survey-status.draft{border-color:#d6dadd;background:#f1f3f2;color:#637067;}
-  .survey-description{display:-webkit-box;overflow:hidden;min-height:0;margin:0 0 10px;color:#637067;font-size:12px;line-height:1.25;overflow-wrap:anywhere;-webkit-box-orient:vertical;-webkit-line-clamp:8;}
-  .survey-created{display:flex;align-items:center;gap:5px;margin:0 0 11px;color:#637067;font-size:11px;}
-  .survey-created svg{width:13px;height:13px;flex-shrink:0;}
-  .survey-card-buttons{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;}
-  .survey-card-button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:0;min-height:32px;padding:5px 7px;border:1px solid #e2e9e3;border-radius:5px;background:#fff;color:#344054;font-size:11px;line-height:1.15;text-align:center;text-decoration:underline;cursor:pointer;}
-  .survey-card-button svg{width:13px;height:13px;flex-shrink:0;}
-  .survey-card-button:hover{filter:brightness(.97);}
-  .survey-card-button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-  .survey-card-button.assessees{border-color:#e3efff;background:#eef5ff;color:#2865b0;}
-  .survey-card-button.raters{border-color:#eee5ff;background:#f5f0ff;color:#7041c3;}
-  .survey-card-button.invitations{grid-column:1/-1;border-color:#d8f1e4;background:#eafaf2;color:#147d54;}
-  .survey-card-divider{height:1px;margin:6px 0 11px;border:0;background:#e2e9e3;}
-  .survey-card-button.danger{color:#c62828;}
-  .survey-card-feedback{margin:5px 0 0;color:#637067;font-size:10px;line-height:1.3;}
-  @media(max-width:600px){.survey-grid{grid-template-columns:repeat(auto-fill,minmax(min(262px,100%),1fr));}.survey-card{width:100%;}}
-
   .row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px;}
   .row:last-child{border-bottom:0;}
   .row span:first-child{color:var(--muted);}
@@ -315,14 +290,6 @@ $csrfToken = $_SESSION['csrf_token'];
       Dashboard
     </button>
 
-    <!-- Button 2 -->
-    <button class="nav-btn<?= in_array($initialView, ['surveys', 'survey360'], true) ? ' active' : '' ?>" data-view="surveys">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-      </svg>
-      360/180 Surveys
-    </button>
-
     <?php if ($canManageLearners): ?>
     <a class="nav-btn nav-link manage-nav<?= $initialView === 'manage' ? ' active' : '' ?>" href="manage.php">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -348,7 +315,7 @@ $csrfToken = $_SESSION['csrf_token'];
     <header class="topbar">
       <div class="topbar-left">
         <button class="menu-toggle" id="menuToggle" aria-label="Open menu">☰</button>
-        <h1 class="page-title" id="pageTitle"><?= $initialView === 'manage' ? 'Manage' : ($initialView === 'survey360' ? htmlspecialchars(($surveyType ?? '360') . '° Survey') : ($initialView === 'surveys' ? '360/180 Surveys' : 'Dashboard')) ?></h1>
+        <h1 class="page-title" id="pageTitle"><?= $initialView === 'manage' ? 'Manage' : 'Dashboard' ?></h1>
       </div>
 
       <div class="topbar-right">
@@ -373,13 +340,6 @@ $csrfToken = $_SESSION['csrf_token'];
           <p>Here is your learning portal. Use the menu on the left to move around.</p>
         </div>
 
-        <div class="grid">
-          <div class="box">
-            <h3>360/180 Surveys</h3>
-            <p>Collect feedback to understand your strengths and growth areas.</p>
-            <button class="link-btn" id="goSurveys">Open Surveys</button>
-          </div>
-        </div>
       </section>
 
       <!-- ========== VIEW 3: My Profile ========== -->
@@ -406,42 +366,6 @@ $csrfToken = $_SESSION['csrf_token'];
       Logout
     </a>
     
-      </section>
-
-      <!-- ========== VIEW 2: 360/180 Surveys ========== -->
-      <section class="view<?= $initialView === 'surveys' ? ' active' : '' ?>" id="view-surveys">
-        <div class="banner">
-          <h2>360/180 Surveys</h2>
-          <p>Feedback surveys that help learners grow.</p>
-        </div>
-
-        <div class="grid">
-          <div class="box">
-            <h3>360° Survey</h3>
-            <p>Feedback from many people around you: your manager, peers, direct reports, and yourself.</p>
-            <a class="link-btn" href="survey_180_360_insider.php?type=360">Open 360° Survey</a>
-          </div>
-
-          <div class="box">
-            <h3>180° Survey</h3>
-            <p>A shorter feedback round: your own view and your manager's view.</p>
-            <a class="link-btn" href="survey_180_360_insider.php?type=180">Open 180° Survey</a>
-          </div>
-        </div>
-      </section>
-
-      <section class="view<?= $initialView === 'survey360' ? ' active' : '' ?>" id="view-survey360">
-        <div class="banner">
-          <h2><?= htmlspecialchars($surveyType ?? '360') ?>° Survey</h2>
-          <p>Share specific, constructive feedback to support someone's growth.</p>
-          <a class="link-btn" href="create_180_360_survey.php?type=<?= urlencode($surveyType ?? '360') ?>">+ Create Survey</a>
-        </div>
-        <?php if (($_GET['created'] ?? '') === '1'): ?>
-          <div class="survey-notice" role="status">Your survey was created successfully.</div>
-        <?php endif; ?>
-        <h3>Your <?= htmlspecialchars($surveyType ?? '360') ?>° surveys</h3>
-        <p class="survey-list-message" id="surveyListMessage" aria-live="polite">Loading surveys...</p>
-        <div class="survey-grid" id="surveyCards"></div>
       </section>
 
       <?php if ($canManageLearners): ?>
@@ -632,7 +556,6 @@ $csrfToken = $_SESSION['csrf_token'];
 
 <script>
   const API_URL = 'Api/dashboard_handler.php';
-  const SURVEY_API_URL = 'Api/create_180_360_survey_hamdler.php';
 
   // ---------- Find the things we need on the page ----------
   const navButtons = document.querySelectorAll('button.nav-btn');
@@ -643,8 +566,6 @@ $csrfToken = $_SESSION['csrf_token'];
   // The title shown in the top bar for each view
   const titles = {
     dashboard: 'Dashboard',
-    surveys:   '360/180 Surveys',
-    survey360: <?= json_encode(($surveyType ?? '360') . '° Survey') ?>,
     profile:   'My Profile',
     <?php if ($canManageLearners): ?>
     manage:    'Manage'
@@ -658,9 +579,8 @@ $csrfToken = $_SESSION['csrf_token'];
     views.forEach(function (v) {
       v.classList.toggle('active', v.id === 'view-' + name);
     });
-    const activeNavigationView = name === 'survey360' ? 'surveys' : name;
     navButtons.forEach(function (b) {
-      b.classList.toggle('active', b.dataset.view === activeNavigationView);
+      b.classList.toggle('active', b.dataset.view === name);
     });
 
     pageTitle.textContent = titles[name];
@@ -668,24 +588,10 @@ $csrfToken = $_SESSION['csrf_token'];
     sidebar.classList.remove('open');             // close the menu on small screens
   }
 
-  // Clicking a sidebar button
   navButtons.forEach(function (btn) {
     btn.addEventListener('click', function () {
-      if (btn.dataset.view === 'surveys' && !location.pathname.endsWith('/survey_180_360.php')) {
-        window.location.href = 'survey_180_360.php';
-        return;
-      }
-      if (btn.dataset.view === 'dashboard' && (location.pathname.endsWith('/survey_180_360.php') || location.pathname.endsWith('/survey_180_360_insider.php'))) {
-        window.location.href = 'dashboard.php';
-        return;
-      }
       showView(btn.dataset.view);
     });
-  });
-
-  // "Open Surveys" button inside the dashboard
-  document.getElementById('goSurveys').addEventListener('click', function () {
-    showView('surveys');
   });
 
   // Hamburger button (small screens)
@@ -693,17 +599,10 @@ $csrfToken = $_SESSION['csrf_token'];
     sidebar.classList.toggle('open');
   });
 
-  const pageSurveyType = <?= json_encode($surveyType ?? null) ?>;
-  if (pageSurveyType && new URLSearchParams(location.search).get('type') !== pageSurveyType) {
-    const canonicalUrl = new URL(location.href);
-    canonicalUrl.searchParams.set('type', pageSurveyType);
-    history.replaceState(null, '', canonicalUrl.pathname + canonicalUrl.search + canonicalUrl.hash);
-  }
-
   const initialHash = location.hash.replace('#', '');
   const requestedView = initialHash.indexOf('manage-') === 0 ? 'manage' : initialHash;
 
-  // On page load, open the view named in the address (#surveys) or the dashboard
+  // On page load, open the view named in the address or the dashboard.
   showView(requestedView || <?= json_encode($initialView) ?>);
 
   const manageTabs = document.querySelectorAll('[data-manage-tab]');
@@ -1229,92 +1128,6 @@ $csrfToken = $_SESSION['csrf_token'];
 
   loadProfile();
 
-  const surveyCards = document.getElementById('surveyCards');
-  const surveyListMessage = document.getElementById('surveyListMessage');
-  if (surveyCards && surveyListMessage && <?= json_encode($initialView === 'survey360') ?>) {
-    const surveyTypeFilter = <?= json_encode($surveyType ?? '360') ?>;
-    fetch(SURVEY_API_URL + '?type=' + encodeURIComponent(surveyTypeFilter), { credentials: 'same-origin' })
-      .then(function (response) {
-        return response.json().then(function (result) {
-          if (!response.ok || !result.success) throw new Error(result.message || 'Could not load surveys.');
-          return result.surveys;
-        });
-      })
-      .then(function (surveys) {
-        surveyCards.replaceChildren();
-        if (!surveys.length) {
-          surveyListMessage.textContent = 'No surveys created yet.';
-          return;
-        }
-        surveyListMessage.textContent = '';
-        surveys.forEach(function (survey) {
-          const card = document.createElement('article');
-          card.className = 'survey-card';
-
-          const header = document.createElement('div');
-          header.className = 'survey-card-header';
-          const title = document.createElement('h3');
-          title.textContent = survey.title;
-          const status = document.createElement('span');
-          status.className = 'survey-status ' + survey.status;
-          status.textContent = survey.status;
-          header.append(title, status);
-
-          const description = document.createElement('p');
-          description.className = 'survey-description';
-          description.textContent = survey.description || 'No description provided.';
-
-          const created = document.createElement('p');
-          created.className = 'survey-created';
-          created.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>';
-          created.appendChild(document.createTextNode('Created ' + survey.created_at));
-
-          const feedback = document.createElement('p');
-          feedback.className = 'survey-card-feedback';
-          feedback.setAttribute('aria-live', 'polite');
-          feedback.hidden = true;
-
-          function makeSurveyAction(label, icon, className) {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'survey-card-button' + (className ? ' ' + className : '');
-            button.innerHTML = icon;
-            button.appendChild(document.createTextNode(label));
-            button.addEventListener('click', function () {
-              feedback.textContent = label + ' is not available yet.';
-              feedback.hidden = false;
-            });
-            return button;
-          }
-
-          const actions = document.createElement('div');
-          actions.className = 'survey-card-buttons';
-          actions.append(
-            makeSurveyAction('Add assessee', '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15 12a4 4 0 1 0-3.98-4A4 4 0 0 0 15 12Zm-8 0a3 3 0 1 0-2.98-3A3 3 0 0 0 7 12Zm8 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4ZM7 14c-2.33 0-7 1.17-7 3.5V20h4v-2c0-1.42.8-2.67 2.3-3.65A12 12 0 0 1 7 14Z"/><path d="M20 5V2h-2v3h-3v2h3v3h2V7h3V5z"/></svg>', 'assessees'),
-            makeSurveyAction('Assign Raters', '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 11a3 3 0 1 0-2.9-3A3 3 0 0 0 16 11ZM8 11a3 3 0 1 0-2.9-3A3 3 0 0 0 8 11Zm8 2c-2.2 0-6.5 1.1-6.5 3.3V19h13v-2.7C22.5 14.1 18.2 13 16 13ZM8 13c-2.2 0-6.5 1.1-6.5 3.3V19h4v-2c0-1.2.6-2.2 1.8-3A8 8 0 0 1 8 13Z"/><path d="m18.7 2 .7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7zM4 2l.8 2.2L7 5l-2.2.8L4 8l-.8-2.2L1 5l2.2-.8z"/></svg>', 'raters'),
-            makeSurveyAction('Send Invitations', '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 5h20v14H2zm2 2v1l8 5 8-5V7l-8 5z"/></svg>', 'invitations')
-          );
-
-          const divider = document.createElement('hr');
-          divider.className = 'survey-card-divider';
-          const managementActions = document.createElement('div');
-          managementActions.className = 'survey-card-buttons';
-          managementActions.append(
-            makeSurveyAction('Progress', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>'),
-            makeSurveyAction('Reports', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19V5M4 19h17M8 15v-3m4 3V8m4 7V5m4 10v-6"/></svg>'),
-            makeSurveyAction('Edit', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>'),
-            makeSurveyAction('Delete', '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"/></svg>', 'danger')
-          );
-
-          card.append(header, description, created, actions, divider, managementActions, feedback);
-          surveyCards.appendChild(card);
-        });
-      })
-      .catch(function (error) {
-        surveyListMessage.textContent = error.message || 'Could not load surveys.';
-        surveyListMessage.classList.add('error');
-      });
-  }
 </script>
 
 </body>
