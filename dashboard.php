@@ -457,6 +457,26 @@ $csrfToken = $_SESSION['csrf_token'];
           <?php endif; ?>
         </div>
         <section class="manage-panel" id="manage-learners" role="tabpanel" aria-labelledby="learnersTab">
+          <div class="box">
+            <h3>Create Learner</h3>
+            <p>Create a learner account for an active institute.</p>
+            <form id="createLearnerForm">
+              <label for="newLearnerName">Learner name</label>
+              <input class="learner-search" id="newLearnerName" name="full_name" maxlength="100" required>
+              <label for="newLearnerEmail">Learner email</label>
+              <input class="learner-search" id="newLearnerEmail" name="email" type="email" maxlength="150" required>
+              <?php if ($isSuperAdmin): ?>
+              <label for="newLearnerInstitute">Institute</label>
+              <select class="learner-search" id="newLearnerInstitute" name="institute_id" required>
+                <option value="">Loading institutes...</option>
+              </select>
+              <?php endif; ?>
+              <label for="newLearnerPassword">Temporary password (minimum 6 characters)</label>
+              <input class="learner-search" id="newLearnerPassword" name="password" type="password" minlength="6" required>
+              <button class="learner-action" type="submit" id="createLearnerButton"<?= $isSuperAdmin ? ' disabled' : '' ?>>Create learner</button>
+            </form>
+            <p class="manage-message" id="createLearnerMessage" aria-live="polite"></p>
+          </div>
           <label for="learnerSearch">Search learners</label>
           <input class="learner-search" type="search" id="learnerSearch" placeholder="Search by name, email, or status">
           <p class="manage-message" id="manageLearnersMessage" aria-live="polite">Loading learners...</p>
@@ -688,6 +708,9 @@ $csrfToken = $_SESSION['csrf_token'];
 
   const manageTabs = document.querySelectorAll('[data-manage-tab]');
   const manageLearnersMessage = document.getElementById('manageLearnersMessage');
+  const createLearnerForm = document.getElementById('createLearnerForm');
+  const createLearnerMessage = document.getElementById('createLearnerMessage');
+  const newLearnerInstitute = document.getElementById('newLearnerInstitute');
   const learnerSearch = document.getElementById('learnerSearch');
   const learnerRows = document.getElementById('learnerRows');
   const createInstituteForm = document.getElementById('createInstituteForm');
@@ -835,6 +858,23 @@ $csrfToken = $_SESSION['csrf_token'];
 
   function renderInstitutes(institutes) {
     instituteRows.replaceChildren();
+    if (newLearnerInstitute) {
+      newLearnerInstitute.replaceChildren(new Option('Select an institute', ''));
+      const activeInstitutes = institutes.filter(function (institute) {
+        return Number(institute.is_active) === 1;
+      });
+      activeInstitutes.forEach(function (institute) {
+        newLearnerInstitute.add(new Option(institute.name, institute.id));
+      });
+      const createLearnerButton = document.getElementById('createLearnerButton');
+      if (activeInstitutes.length === 0) {
+        newLearnerInstitute.options[0].textContent = 'No active institutes available';
+        newLearnerInstitute.disabled = true;
+      } else {
+        newLearnerInstitute.disabled = false;
+      }
+      createLearnerButton.disabled = activeInstitutes.length === 0;
+    }
     if (newInstituteAdminInstitute) {
       newInstituteAdminInstitute.replaceChildren(new Option('Select an institute', ''));
       institutes.filter(function (institute) {
@@ -917,6 +957,49 @@ $csrfToken = $_SESSION['csrf_token'];
     manageInstituteAdminsMessage.textContent = admins.length
       ? 'Showing ' + admins.length + ' institute administrator' + (admins.length === 1 ? '.' : 's.')
       : 'No institute admins are registered yet.';
+  }
+
+  if (createLearnerForm) {
+    createLearnerForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const button = document.getElementById('createLearnerButton');
+      button.disabled = true;
+      createLearnerMessage.textContent = '';
+      createLearnerMessage.classList.remove('error');
+      try {
+        const formData = new FormData(createLearnerForm);
+        const requestData = {
+          action: 'create_learner',
+          full_name: formData.get('full_name'),
+          email: formData.get('email'),
+          password: formData.get('password')
+        };
+        if (formData.has('institute_id')) {
+          requestData.institute_id = formData.get('institute_id');
+        }
+        const response = await fetch(manageApiUrl, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': manageCsrfToken
+          },
+          body: JSON.stringify(requestData)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || 'Could not create the learner.');
+        }
+        createLearnerForm.reset();
+        createLearnerMessage.textContent = result.message;
+        await loadLearners();
+      } catch (error) {
+        createLearnerMessage.textContent = error.message || 'Could not create the learner.';
+        createLearnerMessage.classList.add('error');
+      } finally {
+        button.disabled = false;
+      }
+    });
   }
 
   if (createInstituteForm) {

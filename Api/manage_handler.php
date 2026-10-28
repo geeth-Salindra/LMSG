@@ -111,6 +111,61 @@ try {
     }
 
     $data = json_decode(file_get_contents('php://input'), true);
+    if (is_array($data) && ($data['action'] ?? '') === 'create_learner') {
+        $fullName = trim($data['full_name'] ?? '');
+        $email = trim($data['email'] ?? '');
+        $password = $data['password'] ?? '';
+        if ($isInstituteAdmin && (int)($_SESSION['institute_id'] ?? 0) < 1) {
+            manageJsonReply(403, false, 'Your account is not assigned to an institute.');
+        }
+        $instituteId = $isSuperAdmin
+            ? filter_var($data['institute_id'] ?? null, FILTER_VALIDATE_INT)
+            : (int)$_SESSION['institute_id'];
+        if ($fullName === '' || strlen($fullName) > 100
+            || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 150
+            || strlen($password) < 6
+            || $instituteId === false || $instituteId === null || $instituteId < 1
+        ) {
+            manageJsonReply(422, false, 'Enter a valid learner name, email, password, and institute.');
+        }
+
+        $pdo->beginTransaction();
+        $instituteCheck = $pdo->prepare(
+            'SELECT id FROM institutes WHERE id = ? AND is_active = 1 FOR UPDATE'
+        );
+        $instituteCheck->execute([$instituteId]);
+        if (!$instituteCheck->fetch()) {
+            $pdo->rollBack();
+            manageJsonReply(422, false, 'Select an active institute.');
+        }
+
+        $emailCheck = $pdo->prepare('SELECT id FROM learners WHERE email = ?');
+        $emailCheck->execute([$email]);
+        if ($emailCheck->fetch()) {
+            $pdo->rollBack();
+            manageJsonReply(409, false, 'That email address is already registered.');
+        }
+
+        $createLearner = $pdo->prepare(
+            "INSERT INTO learners (full_name, email, password, role_id, institute_id)
+             SELECT ?, ?, ?, roles.id, ?
+             FROM roles
+             WHERE roles.name = 'learner'"
+        );
+        $createLearner->execute([
+            $fullName,
+            $email,
+            password_hash($password, PASSWORD_DEFAULT),
+            $instituteId
+        ]);
+        if ($createLearner->rowCount() !== 1) {
+            $pdo->rollBack();
+            manageJsonReply(500, false, 'Learner role is missing. Run the migrations.');
+        }
+        $pdo->commit();
+        manageJsonReply(201, true, 'Learner created.');
+    }
+
     if (is_array($data) && ($data['action'] ?? '') === 'toggle_institute') {
         if (!$isSuperAdmin) {
             manageJsonReply(403, false, 'Super Admin access is required to manage institutes.');
