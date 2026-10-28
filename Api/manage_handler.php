@@ -37,6 +37,15 @@ try {
         if ($isInstituteAdmin && (int)($_SESSION['institute_id'] ?? 0) < 1) {
             manageJsonReply(403, false, 'Your account is not assigned to an institute.');
         }
+        if ($isInstituteAdmin) {
+            $activeInstitute = $pdo->prepare(
+                'SELECT id FROM institutes WHERE id = ? AND is_active = 1'
+            );
+            $activeInstitute->execute([(int)$_SESSION['institute_id']]);
+            if (!$activeInstitute->fetch()) {
+                manageJsonReply(403, false, 'Your institute has been deactivated.');
+            }
+        }
         $roleFilter = $isInstituteAdmin
             ? "roles.name IN ('learner', 'institute_admin')"
             : "roles.name = 'learner'";
@@ -79,7 +88,7 @@ try {
         }
         if ($isSuperAdmin) {
             $extra['institutes'] = $pdo->query(
-                'SELECT id, name, created_at FROM institutes ORDER BY name, id'
+                'SELECT id, name, created_at, is_active FROM institutes ORDER BY name, id'
             )->fetchAll();
             $extra['institute_admins'] = $pdo->query(
                 "SELECT learners.id, learners.full_name, learners.email,
@@ -102,6 +111,28 @@ try {
     }
 
     $data = json_decode(file_get_contents('php://input'), true);
+    if (is_array($data) && ($data['action'] ?? '') === 'toggle_institute') {
+        if (!$isSuperAdmin) {
+            manageJsonReply(403, false, 'Super Admin access is required to manage institutes.');
+        }
+        $instituteId = filter_var($data['institute_id'] ?? null, FILTER_VALIDATE_INT);
+        $isActive = filter_var($data['is_active'] ?? null, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        if ($instituteId === false || $instituteId === null || $instituteId < 1 || $isActive === null) {
+            manageJsonReply(422, false, 'A valid institute and status are required.');
+        }
+
+        $updateInstitute = $pdo->prepare('UPDATE institutes SET is_active = ? WHERE id = ?');
+        $updateInstitute->execute([$isActive ? 1 : 0, $instituteId]);
+        if ($updateInstitute->rowCount() === 0) {
+            $findInstitute = $pdo->prepare('SELECT id FROM institutes WHERE id = ?');
+            $findInstitute->execute([$instituteId]);
+            if (!$findInstitute->fetch()) {
+                manageJsonReply(404, false, 'Institute not found.');
+            }
+        }
+        manageJsonReply(200, true, $isActive ? 'Institute activated.' : 'Institute deactivated.');
+    }
+
     if (is_array($data) && ($data['action'] ?? '') === 'change_role') {
         if (!$isInstituteAdmin) {
             manageJsonReply(403, false, 'Institute Admin access is required to change roles.');

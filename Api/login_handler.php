@@ -57,9 +57,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare(
             "SELECT learners.id, learners.full_name, learners.password,
                     learners.institute_id,
-                    learners.is_active, roles.name AS role_name
+                    learners.is_active, roles.name AS role_name,
+                    institutes.is_active AS institute_is_active
              FROM learners
              INNER JOIN roles ON roles.id = learners.role_id
+             LEFT JOIN institutes ON institutes.id = learners.institute_id
              WHERE learners.email = ?"
         );
         $stmt->execute([$email]);
@@ -74,6 +76,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!(bool)$user['is_active']) {
             jsonReply(403, false, 'Access revoked. Your account has been deactivated. Contact your administrator to restore access.', [
                 'code' => 'account_deactivated'
+            ]);
+        }
+        if ($user['role_name'] !== 'super_admin'
+            && ($user['institute_id'] === null || !(bool)$user['institute_is_active'])
+        ) {
+            jsonReply(403, false, 'Access revoked. Your institute has been deactivated. Contact the system administrator.', [
+                'code' => 'institute_deactivated'
             ]);
         }
         // 5. Login success: remember the account and role in the session

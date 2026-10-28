@@ -509,7 +509,7 @@ $csrfToken = $_SESSION['csrf_token'];
             <h3>Institutes</h3>
             <div class="learner-table-wrap">
               <table class="learner-table">
-                <thead><tr><th scope="col">Institute</th><th scope="col">Created</th></tr></thead>
+                <thead><tr><th scope="col">Institute</th><th scope="col">Created</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead>
                 <tbody id="instituteRows"></tbody>
               </table>
             </div>
@@ -828,7 +828,9 @@ $csrfToken = $_SESSION['csrf_token'];
     instituteRows.replaceChildren();
     if (newInstituteAdminInstitute) {
       newInstituteAdminInstitute.replaceChildren(new Option('Select an institute', ''));
-      institutes.forEach(function (institute) {
+      institutes.filter(function (institute) {
+        return Number(institute.is_active) === 1;
+      }).forEach(function (institute) {
         newInstituteAdminInstitute.add(new Option(institute.name, institute.id));
       });
     }
@@ -838,7 +840,22 @@ $csrfToken = $_SESSION['csrf_token'];
       name.textContent = institute.name;
       const created = document.createElement('td');
       created.textContent = new Date(institute.created_at).toLocaleDateString();
-      row.append(name, created);
+      const active = Number(institute.is_active) === 1;
+      const statusCell = document.createElement('td');
+      const status = document.createElement('span');
+      status.className = 'learner-status ' + (active ? 'active' : 'inactive');
+      status.textContent = active ? 'Active' : 'Deactivated';
+      statusCell.appendChild(status);
+      const actionCell = document.createElement('td');
+      const action = document.createElement('button');
+      action.type = 'button';
+      action.className = 'learner-action' + (active ? ' deactivate' : '');
+      action.textContent = active ? 'Deactivate' : 'Activate';
+      action.addEventListener('click', function () {
+        updateInstituteStatus(institute, !active, action);
+      });
+      actionCell.appendChild(action);
+      row.append(name, created, statusCell, actionCell);
       instituteRows.appendChild(row);
     });
   }
@@ -996,6 +1013,37 @@ $csrfToken = $_SESSION['csrf_token'];
     } catch (error) {
       manageLearnersMessage.textContent = error.message || 'Could not update learner status.';
       manageLearnersMessage.classList.add('error');
+      action.disabled = false;
+    }
+  }
+
+  async function updateInstituteStatus(institute, isActive, action) {
+    action.disabled = true;
+    manageInstitutesMessage.textContent = '';
+    manageInstitutesMessage.classList.remove('error');
+    try {
+      const response = await fetch(manageApiUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': manageCsrfToken
+        },
+        body: JSON.stringify({
+          action: 'toggle_institute',
+          institute_id: institute.id,
+          is_active: isActive
+        })
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Could not update institute status.');
+      }
+      manageInstitutesMessage.textContent = result.message;
+      await loadLearners();
+    } catch (error) {
+      manageInstitutesMessage.textContent = error.message || 'Could not update institute status.';
+      manageInstitutesMessage.classList.add('error');
       action.disabled = false;
     }
   }
