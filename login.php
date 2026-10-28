@@ -2,8 +2,8 @@
 // Load the handler first. It starts the session and gives us $csrfToken.
 require_once __DIR__ . '/Api/login_handler.php';
 
-// If the learner is already logged in, skip the login page
-if (!empty($_SESSION['learner_id'])) {
+// If the user is already logged in, skip the login page
+if (!empty($_SESSION['user_id']) || !empty($_SESSION['learner_id'])) {
     header('Location: dashboard.php');
     exit;
 }
@@ -13,7 +13,7 @@ if (!empty($_SESSION['learner_id'])) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Learner Login · LMSG</title>
+<title>Login · LMSG</title>
 <style>
   :root{
     --bg:#102519;
@@ -108,7 +108,7 @@ if (!empty($_SESSION['learner_id'])) {
 <body>
 
   <div class="card">
-    <h2>Learner Login</h2>
+    <h2>Login</h2>
     <p class="subtitle">Welcome back! Please sign in</p>
 
     <form id="loginForm">
@@ -134,6 +134,11 @@ if (!empty($_SESSION['learner_id'])) {
   const form    = document.getElementById('loginForm');
   const message = document.getElementById('message');
   const btn     = document.getElementById('btn');
+
+  if (new URLSearchParams(window.location.search).get('reason') === 'access_revoked') {
+    message.textContent = 'Access revoked. Your account has been deactivated. Contact your administrator to restore access.';
+    message.className = 'error';
+  }
 
   form.addEventListener('submit', async function (e) {
     e.preventDefault();              // stop the normal page reload

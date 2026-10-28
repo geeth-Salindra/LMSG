@@ -1,5 +1,5 @@
 <?php
-// Sends the logged-in learner's profile as JSON.
+// Sends the logged-in user's profile as JSON.
 // dashboard.php calls this with fetch() when the page loads.
 
 session_start();
@@ -17,8 +17,8 @@ function jsonReply($status, $success, $message, $extra = [])
     exit;
 }
 
-// 1. Only logged-in learners may use this API
-if (empty($_SESSION['learner_id'])) {
+// 1. Only logged-in users may use this API
+if (empty($_SESSION['user_id']) && empty($_SESSION['learner_id'])) {
     jsonReply(401, false, 'Your session has expired. Please log in again.');
 }
 
@@ -33,14 +33,26 @@ require_once __DIR__ . '/../includes/database.php';
 try {
     $pdo = getConnection();
 
+    $userId = $_SESSION['user_id'] ?? $_SESSION['learner_id'];
     $stmt = $pdo->prepare(
-        "SELECT full_name, email, created_at FROM learners WHERE id = ?"
+        "SELECT learners.full_name, learners.email, learners.created_at,
+                learners.is_active, roles.name AS role_name
+         FROM learners
+         INNER JOIN roles ON roles.id = learners.role_id
+         WHERE learners.id = ?"
     );
-    $stmt->execute([$_SESSION['learner_id']]);
+    $stmt->execute([$userId]);
     $learner = $stmt->fetch();
 
     if (!$learner) {
         jsonReply(404, false, 'Learner not found.');
+    }
+    if (!(bool)$learner['is_active']) {
+        $_SESSION = [];
+        session_destroy();
+        jsonReply(401, false, 'Access revoked. Your account has been deactivated. Contact your administrator to restore access.', [
+            'code' => 'account_deactivated'
+        ]);
     }
 
     // Make the date easy to read, e.g. "28 Oct 2026"
@@ -50,7 +62,8 @@ try {
         'learner' => [
             'full_name'    => $learner['full_name'],
             'email'        => $learner['email'],
-            'member_since' => $memberSince
+            'member_since' => $memberSince,
+            'role'         => ucwords(str_replace('_', ' ', $learner['role_name']))
         ]
     ]);
 

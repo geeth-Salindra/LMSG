@@ -109,6 +109,11 @@ require_once __DIR__ . '/Api/register_handler.php';
       <label>Email
         <input type="email" id="email" maxlength="150" required>
       </label>
+      <label>Institute
+        <select id="institute_id" required>
+          <option value="">Loading institutes...</option>
+        </select>
+      </label>
       <label>Password
         <input type="password" id="password" required>
       </label>
@@ -129,6 +134,34 @@ require_once __DIR__ . '/Api/register_handler.php';
   const form    = document.getElementById('registerForm');
   const message = document.getElementById('message');
   const btn     = document.getElementById('btn');
+  const instituteSelect = document.getElementById('institute_id');
+
+  fetch('Api/institutes_handler.php', { credentials: 'same-origin' })
+    .then(function (response) {
+      return response.json().then(function (result) {
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || 'Could not load institutes.');
+        }
+        return result.institutes;
+      });
+    })
+    .then(function (institutes) {
+      instituteSelect.replaceChildren(new Option('Select your institute', ''));
+      institutes.forEach(function (institute) {
+        instituteSelect.add(new Option(institute.name, institute.id));
+      });
+      btn.disabled = institutes.length === 0;
+      if (!institutes.length) {
+        message.textContent = 'No active institutes are available for registration.';
+        message.className = 'error';
+      }
+    })
+    .catch(function (error) {
+      instituteSelect.replaceChildren(new Option('Institutes unavailable', ''));
+      btn.disabled = true;
+      message.textContent = error.message || 'Could not load institutes.';
+      message.className = 'error';
+    });
 
   form.addEventListener('submit', async function (e) {
     e.preventDefault();              // stop the normal page reload
@@ -139,6 +172,7 @@ require_once __DIR__ . '/Api/register_handler.php';
     const payload = {
       full_name:        document.getElementById('full_name').value,
       email:            document.getElementById('email').value,
+      institute_id:     instituteSelect.value,
       password:         document.getElementById('password').value,
       confirm_password: document.getElementById('confirm_password').value
     };

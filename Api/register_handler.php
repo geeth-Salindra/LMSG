@@ -38,14 +38,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // 2. Read the JSON sent by the form
     $data = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($data)) {
+        jsonReply(422, false, 'A valid registration request is required.');
+    }
 
     $fullName = trim($data['full_name'] ?? '');
     $email    = trim($data['email'] ?? '');
     $password = $data['password'] ?? '';
     $confirm  = $data['confirm_password'] ?? '';
+    $instituteId = filter_var($data['institute_id'] ?? null, FILTER_VALIDATE_INT);
 
     // 3. Validate
-    if ($fullName === '' || $email === '' || $password === '') {
+    if ($fullName === '' || $email === '' || $password === '' || $instituteId === false || $instituteId === null || $instituteId < 1) {
         jsonReply(422, false, 'All fields are required.');
     }
     if (strlen($fullName) > 100) {
@@ -72,13 +76,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             jsonReply(409, false, 'This email is already registered.');
         }
 
+        $instituteCheck = $pdo->prepare(
+            'SELECT id FROM institutes WHERE id = ? AND is_active = 1'
+        );
+        $instituteCheck->execute([$instituteId]);
+        if (!$instituteCheck->fetch()) {
+            jsonReply(422, false, 'Please select an active institute.');
+        }
+
         // Never store plain passwords - hash them
         $hash = password_hash($password, PASSWORD_DEFAULT);
 
         $insert = $pdo->prepare(
-            "INSERT INTO learners (full_name, email, password) VALUES (?, ?, ?)"
+            "INSERT INTO learners (full_name, email, password, role_id, institute_id)
+             SELECT ?, ?, ?, roles.id, ?
+             FROM roles
+             INNER JOIN institutes ON institutes.id = ? AND institutes.is_active = 1
+             WHERE roles.name = 'learner'"
         );
-        $insert->execute([$fullName, $email, $hash]);
+        $insert->execute([$fullName, $email, $hash, $instituteId, $instituteId]);
+        if ($insert->rowCount() !== 1) {
+            error_log('[register_handler] Learner role is missing. Run the role migration.');
+            jsonReply(500, false, 'Registration is unavailable. Please contact the system administrator.');
+        }
 
         jsonReply(201, true, 'Registration successful!');
 
