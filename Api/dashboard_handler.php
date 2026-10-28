@@ -35,7 +35,8 @@ try {
 
     $userId = $_SESSION['user_id'] ?? $_SESSION['learner_id'];
     $stmt = $pdo->prepare(
-        "SELECT learners.full_name, learners.email, learners.created_at, roles.name AS role_name
+        "SELECT learners.full_name, learners.email, learners.created_at,
+                learners.is_active, roles.name AS role_name
          FROM learners
          INNER JOIN roles ON roles.id = learners.role_id
          WHERE learners.id = ?"
@@ -45,6 +46,13 @@ try {
 
     if (!$learner) {
         jsonReply(404, false, 'Learner not found.');
+    }
+    if (!(bool)$learner['is_active']) {
+        $_SESSION = [];
+        session_destroy();
+        jsonReply(401, false, 'Access revoked. Your account has been deactivated. Contact your administrator to restore access.', [
+            'code' => 'account_deactivated'
+        ]);
     }
 
     // Make the date easy to read, e.g. "28 Oct 2026"

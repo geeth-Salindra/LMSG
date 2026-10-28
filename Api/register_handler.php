@@ -76,9 +76,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hash = password_hash($password, PASSWORD_DEFAULT);
 
         $insert = $pdo->prepare(
-            "INSERT INTO learners (full_name, email, password) VALUES (?, ?, ?)"
+            "INSERT INTO learners (full_name, email, password, role_id)
+             SELECT ?, ?, ?, id FROM roles WHERE name = 'learner'"
         );
         $insert->execute([$fullName, $email, $hash]);
+        if ($insert->rowCount() !== 1) {
+            error_log('[register_handler] Learner role is missing. Run the role migration.');
+            jsonReply(500, false, 'Registration is unavailable. Please contact the system administrator.');
+        }
 
         jsonReply(201, true, 'Registration successful!');
 

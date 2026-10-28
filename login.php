@@ -135,6 +135,11 @@ if (!empty($_SESSION['user_id']) || !empty($_SESSION['learner_id'])) {
   const message = document.getElementById('message');
   const btn     = document.getElementById('btn');
 
+  if (new URLSearchParams(window.location.search).get('reason') === 'access_revoked') {
+    message.textContent = 'Access revoked. Your account has been deactivated. Contact your administrator to restore access.';
+    message.className = 'error';
+  }
+
   form.addEventListener('submit', async function (e) {
     e.preventDefault();              // stop the normal page reload
     message.textContent = '';

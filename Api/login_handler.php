@@ -55,7 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo = getConnection();
 
         $stmt = $pdo->prepare(
-            "SELECT learners.id, learners.full_name, learners.password, roles.name AS role_name
+            "SELECT learners.id, learners.full_name, learners.password,
+                    learners.is_active, roles.name AS role_name
              FROM learners
              INNER JOIN roles ON roles.id = learners.role_id
              WHERE learners.email = ?"
@@ -63,10 +64,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$email]);
         $user = $stmt->fetch();
 
-        // password_verify() compares the typed password with the scrambled one
+        // Keep invalid-account and invalid-password responses indistinguishable.
         if (!$user || !password_verify($password, $user['password'])) {
             // Same message for "no such email" and "wrong password" on purpose
             jsonReply(401, false, 'Invalid email or password.');
+        }
+
+        if (!(bool)$user['is_active']) {
+            jsonReply(403, false, 'Access revoked. Your account has been deactivated. Contact your administrator to restore access.', [
+                'code' => 'account_deactivated'
+            ]);
         }
 
         // 5. Login success: remember the account and role in the session
