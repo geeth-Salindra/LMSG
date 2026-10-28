@@ -519,7 +519,7 @@ $csrfToken = $_SESSION['csrf_token'];
             <div class="box">
               <h3>Institute Admins</h3>
             <p>Create administrators and view which institute each administrator belongs to.</p>
-            <form id="createInstituteAdminForm">
+            <form id="createInstituteAdminForm" class="create-institute-admin-form">
               <label for="newInstituteAdminName">Administrator name</label>
               <input class="learner-search" id="newInstituteAdminName" name="admin_name" maxlength="100" required>
               <label for="newInstituteAdminEmail">Administrator email</label>
@@ -532,7 +532,7 @@ $csrfToken = $_SESSION['csrf_token'];
               <input class="learner-search" id="newInstituteAdminPassword" name="admin_password" type="password" minlength="6" required>
               <button class="learner-action" type="submit" id="createInstituteAdminButton">Create institute admin</button>
             </form>
-            <p class="manage-message" id="createInstituteAdminMessage" aria-live="polite"></p>
+            <p class="manage-message create-institute-admin-message" id="createInstituteAdminMessage" aria-live="polite"></p>
             <p class="manage-message" id="manageInstituteAdminsMessage" aria-live="polite">Loading institute admins...</p>
               <div class="learner-table-wrap">
                 <table class="learner-table">
@@ -574,6 +574,16 @@ $csrfToken = $_SESSION['csrf_token'];
             <h3>Institute Admins</h3>
             <p>Institute admins have learner permissions plus additional management features.</p>
             <p>Promote learners from the Manage Learners tab; demote institute admins here.</p>
+            <form id="createMyInstituteAdminForm" class="create-institute-admin-form">
+              <label for="myInstituteAdminName">Administrator name</label>
+              <input class="learner-search" id="myInstituteAdminName" name="admin_name" maxlength="100" required>
+              <label for="myInstituteAdminEmail">Administrator email</label>
+              <input class="learner-search" id="myInstituteAdminEmail" name="admin_email" type="email" maxlength="150" required>
+              <label for="myInstituteAdminPassword">Temporary password (minimum 6 characters)</label>
+              <input class="learner-search" id="myInstituteAdminPassword" name="admin_password" type="password" minlength="6" required>
+              <button class="learner-action" type="submit">Create institute admin</button>
+            </form>
+            <p class="manage-message create-institute-admin-message" id="createMyInstituteAdminMessage" aria-live="polite"></p>
             <p class="manage-message" id="manageInstituteAdminsMessage" aria-live="polite">Loading institute admins...</p>
             <div class="learner-table-wrap">
               <table class="learner-table">
@@ -681,13 +691,12 @@ $csrfToken = $_SESSION['csrf_token'];
   const learnerSearch = document.getElementById('learnerSearch');
   const learnerRows = document.getElementById('learnerRows');
   const createInstituteForm = document.getElementById('createInstituteForm');
-  const createInstituteAdminForm = document.getElementById('createInstituteAdminForm');
+  const createInstituteAdminForms = document.querySelectorAll('.create-institute-admin-form');
   const manageInstitutesMessage = document.getElementById('manageInstitutesMessage');
   const instituteRows = document.getElementById('instituteRows');
   const myInstituteRows = document.getElementById('myInstituteRows');
   const myInstituteMessage = document.getElementById('myInstituteMessage');
   const newInstituteAdminInstitute = document.getElementById('newInstituteAdminInstitute');
-  const createInstituteAdminMessage = document.getElementById('createInstituteAdminMessage');
   const instituteAdminRows = document.getElementById('instituteAdminRows');
   const manageInstituteAdminsMessage = document.getElementById('manageInstituteAdminsMessage');
   const instituteTabs = document.querySelectorAll('[data-institute-tab]');
@@ -950,15 +959,25 @@ $csrfToken = $_SESSION['csrf_token'];
     });
   }
 
-  if (createInstituteAdminForm) {
-    createInstituteAdminForm.addEventListener('submit', async function (event) {
+  createInstituteAdminForms.forEach(function (form) {
+    form.addEventListener('submit', async function (event) {
       event.preventDefault();
-      const button = document.getElementById('createInstituteAdminButton');
+      const button = form.querySelector('button[type="submit"]');
+      const message = form.parentElement.querySelector('.create-institute-admin-message');
       button.disabled = true;
-      createInstituteAdminMessage.textContent = '';
-      createInstituteAdminMessage.classList.remove('error');
+      message.textContent = '';
+      message.classList.remove('error');
       try {
-        const formData = new FormData(createInstituteAdminForm);
+        const formData = new FormData(form);
+        const requestData = {
+          action: 'create_institute_admin',
+          admin_name: formData.get('admin_name'),
+          admin_email: formData.get('admin_email'),
+          admin_password: formData.get('admin_password')
+        };
+        if (formData.has('institute_id')) {
+          requestData.institute_id = formData.get('institute_id');
+        }
         const response = await fetch(manageApiUrl, {
           method: 'POST',
           credentials: 'same-origin',
@@ -966,29 +985,23 @@ $csrfToken = $_SESSION['csrf_token'];
             'Content-Type': 'application/json',
             'X-CSRF-Token': manageCsrfToken
           },
-          body: JSON.stringify({
-            action: 'create_institute_admin',
-            admin_name: formData.get('admin_name'),
-            admin_email: formData.get('admin_email'),
-            institute_id: formData.get('institute_id'),
-            admin_password: formData.get('admin_password')
-          })
+          body: JSON.stringify(requestData)
         });
         const result = await response.json();
         if (!response.ok || !result.success) {
           throw new Error(result.message || 'Could not create the institute admin.');
         }
-        createInstituteAdminForm.reset();
-        createInstituteAdminMessage.textContent = result.message;
+        form.reset();
+        message.textContent = result.message;
         await loadLearners();
       } catch (error) {
-        createInstituteAdminMessage.textContent = error.message || 'Could not create the institute admin.';
-        createInstituteAdminMessage.classList.add('error');
+        message.textContent = error.message || 'Could not create the institute admin.';
+        message.classList.add('error');
       } finally {
         button.disabled = false;
       }
     });
-  }
+  });
 
   async function updateLearnerStatus(learner, isActive, action) {
     action.disabled = true;

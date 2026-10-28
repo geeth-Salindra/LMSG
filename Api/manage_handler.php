@@ -212,14 +212,19 @@ try {
     }
 
     if (is_array($data) && ($data['action'] ?? '') === 'create_institute_admin') {
-        if (!$isSuperAdmin) {
-            manageJsonReply(403, false, 'Super Admin access is required to create institute admins.');
+        if (!$isSuperAdmin && !$isInstituteAdmin) {
+            manageJsonReply(403, false, 'Administrator access is required to create institute admins.');
         }
 
         $adminName = trim($data['admin_name'] ?? '');
         $adminEmail = trim($data['admin_email'] ?? '');
         $adminPassword = $data['admin_password'] ?? '';
-        $instituteId = filter_var($data['institute_id'] ?? null, FILTER_VALIDATE_INT);
+        if ($isInstituteAdmin && (int)($_SESSION['institute_id'] ?? 0) < 1) {
+            manageJsonReply(403, false, 'Your account is not assigned to an institute.');
+        }
+        $instituteId = $isSuperAdmin
+            ? filter_var($data['institute_id'] ?? null, FILTER_VALIDATE_INT)
+            : (int)$_SESSION['institute_id'];
         if ($adminName === '' || strlen($adminName) > 100
             || !filter_var($adminEmail, FILTER_VALIDATE_EMAIL) || strlen($adminEmail) > 150
             || strlen($adminPassword) < 6
