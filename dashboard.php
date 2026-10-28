@@ -1,13 +1,14 @@
 <?php
 session_start();
 
-// Guard: only logged-in learners can see this page
-if (empty($_SESSION['learner_id'])) {
+// All authenticated roles share the current system features.
+if (empty($_SESSION['user_id']) && empty($_SESSION['learner_id'])) {
     header('Location: login.php');
     exit;
 }
 
-$learnerName = $_SESSION['learner_name'];
+$learnerName = $_SESSION['user_name'] ?? $_SESSION['learner_name'];
+$roleLabel = ucwords(str_replace('_', ' ', $_SESSION['user_role'] ?? 'learner'));
 
 // First name for the welcome text, first letter for the round avatar
 $firstName = explode(' ', trim($learnerName))[0];
@@ -293,7 +294,7 @@ $csrfToken = $_SESSION['csrf_token'];
           <div class="user-info">
             <!-- htmlspecialchars prints the name safely as text -->
             <div class="user-name"><?= htmlspecialchars($learnerName) ?></div>
-            <div class="user-role">Learner</div>
+            <div class="user-role"><?= htmlspecialchars($roleLabel) ?></div>
           </div>
         </div>
         <a class="logout" href="Api/logout.php">Logout</a>
@@ -330,7 +331,7 @@ $csrfToken = $_SESSION['csrf_token'];
           <div id="profileBox">
             <div class="row"><span>Full name</span><span id="pName">Loading...</span></div>
             <div class="row"><span>Email</span><span id="pEmail">Loading...</span></div>
-            <div class="row"><span>Role</span><span>Learner</span></div>
+            <div class="row"><span>Role</span><span id="pRole"><?= htmlspecialchars($roleLabel) ?></span></div>
             <div class="row"><span>Member since</span><span id="pSince">Loading...</span></div>
           </div>
           <div id="profileError"></div>
@@ -446,7 +447,7 @@ $csrfToken = $_SESSION['csrf_token'];
   // On page load, open the view named in the address (#surveys) or the dashboard
   showView(location.hash.replace('#', '') || <?= json_encode($initialView) ?>);
 
-  // ---------- Load the learner's profile from the API ----------
+  // ---------- Load the user's profile from the API ----------
   async function loadProfile() {
     try {
       const response = await fetch(API_URL, { credentials: 'same-origin' });
@@ -468,6 +469,7 @@ $csrfToken = $_SESSION['csrf_token'];
       document.getElementById('pName').textContent  = result.learner.full_name;
       document.getElementById('pEmail').textContent = result.learner.email;
       document.getElementById('pSince').textContent = result.learner.member_since;
+      document.getElementById('pRole').textContent  = result.learner.role;
 
     } catch (err) {
       document.getElementById('profileError').textContent = 'Could not load your profile.';

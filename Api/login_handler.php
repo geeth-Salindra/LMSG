@@ -1,7 +1,7 @@
 <?php
 // This file is used in two ways:
 //  1) login.php includes it to get the security token ($csrfToken)
-//  2) the form's fetch() sends a POST request to it to log a learner in
+//  2) the form's fetch() sends a POST request to it to log a user in
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -50,26 +50,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         jsonReply(422, false, 'Email and password are required.');
     }
 
-    // 4. Find the learner and check the password
+    // 4. Find the account and its role, then check the password
     try {
         $pdo = getConnection();
 
         $stmt = $pdo->prepare(
-            "SELECT id, full_name, password FROM learners WHERE email = ?"
+            "SELECT learners.id, learners.full_name, learners.password, roles.name AS role_name
+             FROM learners
+             INNER JOIN roles ON roles.id = learners.role_id
+             WHERE learners.email = ?"
         );
         $stmt->execute([$email]);
-        $learner = $stmt->fetch();
+        $user = $stmt->fetch();
 
         // password_verify() compares the typed password with the scrambled one
-        if (!$learner || !password_verify($password, $learner['password'])) {
+        if (!$user || !password_verify($password, $user['password'])) {
             // Same message for "no such email" and "wrong password" on purpose
             jsonReply(401, false, 'Invalid email or password.');
         }
 
-        // 5. Login success: remember this learner in the session
+        // 5. Login success: remember the account and role in the session
         session_regenerate_id(true);   // new session ID for safety
-        $_SESSION['learner_id']   = $learner['id'];
-        $_SESSION['learner_name'] = $learner['full_name'];
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['user_name'] = $user['full_name'];
+        $_SESSION['user_role'] = $user['role_name'];
+        $_SESSION['learner_id'] = $user['id'];
+        $_SESSION['learner_name'] = $user['full_name'];
 
         jsonReply(200, true, 'Login successful! Redirecting...', [
             'redirect' => 'dashboard.php'
@@ -82,6 +88,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             jsonReply(503, false, 'Cannot connect to MySQL. Check that the database service is running and the connection settings are correct.');
         }
 
-        jsonReply(500, false, 'Database query failed. Verify the learners table exists and run the migrations.');
+        jsonReply(500, false, 'Database query failed. Verify the database tables exist and run the migrations.');
     }
 }
