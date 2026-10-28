@@ -8,7 +8,7 @@ if (empty($_SESSION['user_id']) && empty($_SESSION['learner_id'])) {
     exit;
 }
 
-if (($_SESSION['user_role'] ?? '') !== 'super_admin') {
+if (!in_array($_SESSION['user_role'] ?? '', ['super_admin', 'institute_admin'], true)) {
     header('Location: dashboard.php');
     exit;
 }

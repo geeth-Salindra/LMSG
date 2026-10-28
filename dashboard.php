@@ -12,6 +12,8 @@ if (empty($_SESSION['user_id']) && empty($_SESSION['learner_id'])) {
 $learnerName = $_SESSION['user_name'] ?? $_SESSION['learner_name'];
 $roleLabel = ucwords(str_replace('_', ' ', $_SESSION['user_role'] ?? 'learner'));
 $isSuperAdmin = ($_SESSION['user_role'] ?? '') === 'super_admin';
+$isInstituteAdmin = ($_SESSION['user_role'] ?? '') === 'institute_admin';
+$canManageLearners = $isSuperAdmin || $isInstituteAdmin;
 
 // First name for the welcome text, first letter for the round avatar
 $firstName = explode(' ', trim($learnerName))[0];
@@ -321,7 +323,7 @@ $csrfToken = $_SESSION['csrf_token'];
       360/180 Surveys
     </button>
 
-    <?php if ($isSuperAdmin): ?>
+    <?php if ($canManageLearners): ?>
     <a class="nav-btn nav-link manage-nav<?= $initialView === 'manage' ? ' active' : '' ?>" href="manage.php">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.7 2.94-.08-.03a1.7 1.7 0 0 0-1.83.23l-.07.05h-3.4l-.03-.08a1.7 1.7 0 0 0-1.48-1.16l-.09-.01-2.94-1.7.03-.08a1.7 1.7 0 0 0-.23-1.83l-.05-.07v-3.4l.08-.03a1.7 1.7 0 0 0 1.16-1.48l.01-.09 1.7-2.94.08.03a1.7 1.7 0 0 0 1.83-.23l.07-.05h3.4l.03.08a1.7 1.7 0 0 0 1.48 1.16l.09.01 2.94 1.7-.03.08a1.7 1.7 0 0 0 .23 1.83l.05.07v3.4l-.08.03A1.7 1.7 0 0 0 19.4 15z"/>
@@ -330,7 +332,7 @@ $csrfToken = $_SESSION['csrf_token'];
     </a>
     <?php endif; ?>
 
-    <button class="nav-btn<?= $isSuperAdmin ? '' : ' profile-nav' ?>" data-view="profile">
+    <button class="nav-btn<?= $canManageLearners ? '' : ' profile-nav' ?>" data-view="profile">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/>
       </svg>
@@ -442,15 +444,17 @@ $csrfToken = $_SESSION['csrf_token'];
         <div class="survey-grid" id="surveyCards"></div>
       </section>
 
-      <?php if ($isSuperAdmin): ?>
+      <?php if ($canManageLearners): ?>
       <section class="view<?= $initialView === 'manage' ? ' active' : '' ?>" id="view-manage">
         <div class="banner">
           <h2>Manage</h2>
-          <p>Super Admin workspace</p>
+          <p><?= $isSuperAdmin ? 'Super Admin workspace' : 'Manage learners and institute admins' ?></p>
         </div>
         <div class="manage-tabs" role="tablist" aria-label="Manage sections">
           <button type="button" class="manage-tab active" id="learnersTab" role="tab" aria-selected="true" aria-controls="manage-learners" data-manage-tab="learners">Manage Learners</button>
+          <?php if ($canManageLearners): ?>
           <button type="button" class="manage-tab" id="institutesTab" role="tab" aria-selected="false" aria-controls="manage-institutes" data-manage-tab="institutes">Manage Institutes</button>
+          <?php endif; ?>
         </div>
         <section class="manage-panel" id="manage-learners" role="tabpanel" aria-labelledby="learnersTab">
           <label for="learnerSearch">Search learners</label>
@@ -462,21 +466,133 @@ $csrfToken = $_SESSION['csrf_token'];
                 <tr>
                   <th scope="col">Name</th>
                   <th scope="col">Email</th>
+                  <th scope="col">Institute</th>
+                  <?php if ($isSuperAdmin): ?>
+                  <th scope="col">Role</th>
+                  <?php endif; ?>
                   <th scope="col">Member since</th>
                   <th scope="col">Status</th>
+                  <?php if ($isSuperAdmin): ?>
                   <th scope="col">Action</th>
+                  <?php endif; ?>
+                  <?php if ($isInstituteAdmin): ?>
+                  <th scope="col">Role action</th>
+                  <?php endif; ?>
                 </tr>
               </thead>
               <tbody id="learnerRows"></tbody>
             </table>
           </div>
         </section>
+        <?php if ($isSuperAdmin): ?>
         <section class="manage-panel" id="manage-institutes" role="tabpanel" aria-labelledby="institutesTab" hidden>
+          <div class="manage-tabs" role="tablist" aria-label="Institute management sections">
+            <button type="button" class="manage-tab active" role="tab" aria-selected="true" aria-controls="institute-list-panel" data-institute-tab="institutes">Institutes</button>
+            <button type="button" class="manage-tab" role="tab" aria-selected="false" aria-controls="institute-admins-panel" data-institute-tab="admins">Institute Admins</button>
+          </div>
+          <section class="manage-panel" id="institute-list-panel" role="tabpanel">
           <div class="box">
             <h3>Manage Institutes</h3>
-            <p>Institute management is not available yet.</p>
+            <p>Create an institute and its first institute administrator account.</p>
+            <form id="createInstituteForm">
+              <label for="instituteName">Institute name</label>
+              <input class="learner-search" id="instituteName" name="name" maxlength="150" required>
+              <label for="instituteAdminName">Institute administrator name</label>
+              <input class="learner-search" id="instituteAdminName" name="admin_name" maxlength="100" required>
+              <label for="instituteAdminEmail">Institute administrator email</label>
+              <input class="learner-search" id="instituteAdminEmail" name="admin_email" type="email" maxlength="150" required>
+              <label for="instituteAdminPassword">Temporary password (minimum 6 characters)</label>
+              <input class="learner-search" id="instituteAdminPassword" name="admin_password" type="password" minlength="6" required>
+              <button class="learner-action" type="submit" id="createInstituteButton">Create institute</button>
+            </form>
+            <p class="manage-message" id="manageInstitutesMessage" aria-live="polite"></p>
+            <h3>Institutes</h3>
+            <div class="learner-table-wrap">
+              <table class="learner-table">
+                <thead><tr><th scope="col">Institute</th><th scope="col">Created</th></tr></thead>
+                <tbody id="instituteRows"></tbody>
+              </table>
+            </div>
           </div>
+          </section>
+          <section class="manage-panel" id="institute-admins-panel" role="tabpanel" hidden>
+            <div class="box">
+              <h3>Institute Admins</h3>
+            <p>Create administrators and view which institute each administrator belongs to.</p>
+            <form id="createInstituteAdminForm">
+              <label for="newInstituteAdminName">Administrator name</label>
+              <input class="learner-search" id="newInstituteAdminName" name="admin_name" maxlength="100" required>
+              <label for="newInstituteAdminEmail">Administrator email</label>
+              <input class="learner-search" id="newInstituteAdminEmail" name="admin_email" type="email" maxlength="150" required>
+              <label for="newInstituteAdminInstitute">Institute</label>
+              <select class="learner-search" id="newInstituteAdminInstitute" name="institute_id" required>
+                <option value="">Loading institutes...</option>
+              </select>
+              <label for="newInstituteAdminPassword">Temporary password (minimum 6 characters)</label>
+              <input class="learner-search" id="newInstituteAdminPassword" name="admin_password" type="password" minlength="6" required>
+              <button class="learner-action" type="submit" id="createInstituteAdminButton">Create institute admin</button>
+            </form>
+            <p class="manage-message" id="createInstituteAdminMessage" aria-live="polite"></p>
+            <p class="manage-message" id="manageInstituteAdminsMessage" aria-live="polite">Loading institute admins...</p>
+              <div class="learner-table-wrap">
+                <table class="learner-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Name</th>
+                      <th scope="col">Email</th>
+                      <th scope="col">Member since</th>
+                      <th scope="col">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="instituteAdminRows"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
         </section>
+        <?php elseif ($isInstituteAdmin): ?>
+        <section class="manage-panel" id="manage-institutes" role="tabpanel" aria-labelledby="institutesTab" hidden>
+          <div class="manage-tabs" role="tablist" aria-label="Institute sections">
+            <button type="button" class="manage-tab active" role="tab" aria-selected="true" aria-controls="institute-list-panel" data-institute-tab="institutes">Institutes</button>
+            <button type="button" class="manage-tab" role="tab" aria-selected="false" aria-controls="institute-admins-panel" data-institute-tab="admins">Institute Admins</button>
+          </div>
+          <section class="manage-panel" id="institute-list-panel" role="tabpanel">
+            <div class="box">
+              <h3>My Institute</h3>
+              <p>This is the institute assigned to your account. Institute details are view-only.</p>
+              <p class="manage-message" id="myInstituteMessage" aria-live="polite">Loading institute...</p>
+              <div class="learner-table-wrap">
+                <table class="learner-table">
+                  <thead><tr><th scope="col">Institute</th><th scope="col">Created</th></tr></thead>
+                  <tbody id="myInstituteRows"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+          <section class="manage-panel" id="institute-admins-panel" role="tabpanel" hidden>
+          <div class="box">
+            <h3>Institute Admins</h3>
+            <p>Institute admins have learner permissions plus additional management features.</p>
+            <p>Promote learners from the Manage Learners tab; demote institute admins here.</p>
+            <p class="manage-message" id="manageInstituteAdminsMessage" aria-live="polite">Loading institute admins...</p>
+            <div class="learner-table-wrap">
+              <table class="learner-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Member since</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="instituteAdminRows"></tbody>
+              </table>
+            </div>
+          </div>
+          </section>
+        </section>
+        <?php endif; ?>
       </section>
       <?php endif; ?>
 
@@ -500,7 +616,7 @@ $csrfToken = $_SESSION['csrf_token'];
     surveys:   '360/180 Surveys',
     survey360: <?= json_encode(($surveyType ?? '360') . '° Survey') ?>,
     profile:   'My Profile',
-    <?php if ($isSuperAdmin): ?>
+    <?php if ($canManageLearners): ?>
     manage:    'Manage'
     <?php endif; ?>
   };
@@ -564,8 +680,20 @@ $csrfToken = $_SESSION['csrf_token'];
   const manageLearnersMessage = document.getElementById('manageLearnersMessage');
   const learnerSearch = document.getElementById('learnerSearch');
   const learnerRows = document.getElementById('learnerRows');
+  const createInstituteForm = document.getElementById('createInstituteForm');
+  const createInstituteAdminForm = document.getElementById('createInstituteAdminForm');
+  const manageInstitutesMessage = document.getElementById('manageInstitutesMessage');
+  const instituteRows = document.getElementById('instituteRows');
+  const myInstituteRows = document.getElementById('myInstituteRows');
+  const myInstituteMessage = document.getElementById('myInstituteMessage');
+  const newInstituteAdminInstitute = document.getElementById('newInstituteAdminInstitute');
+  const createInstituteAdminMessage = document.getElementById('createInstituteAdminMessage');
+  const instituteAdminRows = document.getElementById('instituteAdminRows');
+  const manageInstituteAdminsMessage = document.getElementById('manageInstituteAdminsMessage');
+  const instituteTabs = document.querySelectorAll('[data-institute-tab]');
   const manageCsrfToken = <?= json_encode($csrfToken) ?>;
   const manageApiUrl = 'Api/manage_handler.php';
+  const isInstituteAdmin = <?= json_encode($isInstituteAdmin) ?>;
   let allLearners = [];
 
   function setManageTab(tabName, updateHash) {
@@ -576,8 +704,23 @@ $csrfToken = $_SESSION['csrf_token'];
       tab.setAttribute('aria-selected', selected ? 'true' : 'false');
     });
     document.getElementById('manage-learners').hidden = activeTab !== 'learners';
-    document.getElementById('manage-institutes').hidden = activeTab !== 'institutes';
+    const institutesPanel = document.getElementById('manage-institutes');
+    if (institutesPanel) institutesPanel.hidden = activeTab !== 'institutes';
+    if (activeTab === 'institutes' && document.getElementById('institute-list-panel')) {
+      setInstituteTab('institutes');
+    }
     if (updateHash) history.replaceState(null, '', '#manage-' + activeTab);
+  }
+
+  function setInstituteTab(tabName) {
+    const activeTab = tabName === 'admins' ? 'admins' : 'institutes';
+    instituteTabs.forEach(function (tab) {
+      const selected = tab.dataset.instituteTab === activeTab;
+      tab.classList.toggle('active', selected);
+      tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+    });
+    document.getElementById('institute-list-panel').hidden = activeTab !== 'institutes';
+    document.getElementById('institute-admins-panel').hidden = activeTab !== 'admins';
   }
 
   function renderLearners(learners) {
@@ -588,6 +731,8 @@ $csrfToken = $_SESSION['csrf_token'];
       const searchableText = [
         learner.full_name,
         learner.email,
+        learner.institute_name || '',
+        learner.role_name || 'learner',
         active ? 'active' : 'deactivated'
       ].join(' ').toLocaleLowerCase();
       return searchableText.includes(query);
@@ -602,6 +747,14 @@ $csrfToken = $_SESSION['csrf_token'];
       const email = document.createElement('td');
       email.textContent = learner.email;
       row.appendChild(email);
+      const institute = document.createElement('td');
+      institute.textContent = learner.institute_name || '';
+      row.appendChild(institute);
+      if (!isInstituteAdmin) {
+        const role = document.createElement('td');
+        role.textContent = learner.role_name === 'institute_admin' ? 'Institute Admin' : 'Learner';
+        row.appendChild(role);
+      }
       const joined = document.createElement('td');
       joined.textContent = new Date(learner.created_at).toLocaleDateString();
       row.appendChild(joined);
@@ -611,17 +764,35 @@ $csrfToken = $_SESSION['csrf_token'];
       status.textContent = active ? 'Active' : 'Deactivated';
       statusCell.appendChild(status);
       row.appendChild(statusCell);
-      const actionCell = document.createElement('td');
-      const action = document.createElement('button');
-      action.type = 'button';
-      action.className = 'learner-action' + (active ? ' deactivate' : '');
-      action.textContent = active ? 'Deactivate' : 'Activate';
-      action.setAttribute('aria-label', (active ? 'Deactivate ' : 'Activate ') + learner.full_name);
-      action.addEventListener('click', function () {
-        updateLearnerStatus(learner, !active, action);
-      });
-      actionCell.appendChild(action);
-      row.appendChild(actionCell);
+      if (!isInstituteAdmin) {
+        const actionCell = document.createElement('td');
+        if (learner.role_name === 'learner') {
+          const action = document.createElement('button');
+          action.type = 'button';
+          action.className = 'learner-action' + (active ? ' deactivate' : '');
+          action.textContent = active ? 'Deactivate' : 'Activate';
+          action.setAttribute('aria-label', (active ? 'Deactivate ' : 'Activate ') + learner.full_name);
+          action.addEventListener('click', function () {
+            updateLearnerStatus(learner, !active, action);
+          });
+          actionCell.appendChild(action);
+        } else {
+          actionCell.textContent = '—';
+        }
+        row.appendChild(actionCell);
+      }
+      if (isInstituteAdmin) {
+        const roleActionCell = document.createElement('td');
+        const roleAction = document.createElement('button');
+        roleAction.type = 'button';
+        roleAction.className = 'learner-action';
+        roleAction.textContent = 'Promote to Admin';
+        roleAction.addEventListener('click', function () {
+          updateLearnerRole(learner, 'institute_admin', roleAction);
+        });
+        roleActionCell.appendChild(roleAction);
+        row.appendChild(roleActionCell);
+      }
       learnerRows.appendChild(row);
     });
 
@@ -644,10 +815,162 @@ $csrfToken = $_SESSION['csrf_token'];
       }
       allLearners = result.learners;
       renderLearners(allLearners);
+      if (instituteRows && result.institutes) renderInstitutes(result.institutes);
+      if (instituteAdminRows && result.institute_admins) renderInstituteAdmins(result.institute_admins);
+      if (myInstituteRows && result.institute) renderMyInstitute(result.institute);
     } catch (error) {
       manageLearnersMessage.textContent = error.message || 'Could not load learners.';
       manageLearnersMessage.classList.add('error');
     }
+  }
+
+  function renderInstitutes(institutes) {
+    instituteRows.replaceChildren();
+    if (newInstituteAdminInstitute) {
+      newInstituteAdminInstitute.replaceChildren(new Option('Select an institute', ''));
+      institutes.forEach(function (institute) {
+        newInstituteAdminInstitute.add(new Option(institute.name, institute.id));
+      });
+    }
+    institutes.forEach(function (institute) {
+      const row = document.createElement('tr');
+      const name = document.createElement('td');
+      name.textContent = institute.name;
+      const created = document.createElement('td');
+      created.textContent = new Date(institute.created_at).toLocaleDateString();
+      row.append(name, created);
+      instituteRows.appendChild(row);
+    });
+  }
+
+  function renderMyInstitute(institute) {
+    myInstituteRows.replaceChildren();
+    const row = document.createElement('tr');
+    const name = document.createElement('td');
+    name.textContent = institute.name;
+    const created = document.createElement('td');
+    created.textContent = new Date(institute.created_at).toLocaleDateString();
+    row.append(name, created);
+    myInstituteRows.appendChild(row);
+    myInstituteMessage.textContent = 'Institute information is read-only.';
+  }
+
+  function renderInstituteAdmins(admins) {
+    instituteAdminRows.replaceChildren();
+    admins.forEach(function (admin) {
+      const row = document.createElement('tr');
+      const name = document.createElement('td');
+      name.textContent = admin.full_name;
+      const email = document.createElement('td');
+      email.textContent = admin.email;
+      const joined = document.createElement('td');
+      joined.textContent = new Date(admin.created_at).toLocaleDateString();
+      const statusCell = document.createElement('td');
+      const status = document.createElement('span');
+      const active = Number(admin.is_active) === 1;
+      status.className = 'learner-status ' + (active ? 'active' : 'inactive');
+      status.textContent = active ? 'Active' : 'Deactivated';
+      statusCell.appendChild(status);
+      row.append(name, email, joined, statusCell);
+      if (isInstituteAdmin) {
+        const actionCell = document.createElement('td');
+        const demote = document.createElement('button');
+        demote.type = 'button';
+        demote.className = 'learner-action deactivate';
+        demote.textContent = 'Demote to Learner';
+        demote.disabled = isInstituteAdmin
+          && Number(admin.id) === Number(<?= json_encode((int)($_SESSION['user_id'] ?? 0)) ?>);
+        demote.addEventListener('click', function () {
+          updateLearnerRole(admin, 'learner', demote);
+        });
+        actionCell.appendChild(demote);
+        row.appendChild(actionCell);
+      }
+      instituteAdminRows.appendChild(row);
+    });
+    manageInstituteAdminsMessage.textContent = admins.length
+      ? 'Showing ' + admins.length + ' institute administrator' + (admins.length === 1 ? '.' : 's.')
+      : 'No institute admins are registered yet.';
+  }
+
+  if (createInstituteForm) {
+    createInstituteForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const button = document.getElementById('createInstituteButton');
+      button.disabled = true;
+      manageInstitutesMessage.textContent = '';
+      manageInstitutesMessage.classList.remove('error');
+      try {
+        const formData = new FormData(createInstituteForm);
+        const response = await fetch(manageApiUrl, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': manageCsrfToken
+          },
+          body: JSON.stringify({
+            action: 'create_institute',
+            name: formData.get('name'),
+            admin_name: formData.get('admin_name'),
+            admin_email: formData.get('admin_email'),
+            admin_password: formData.get('admin_password')
+          })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || 'Could not create the institute.');
+        }
+        createInstituteForm.reset();
+        manageInstitutesMessage.textContent = result.message;
+        await loadLearners();
+      } catch (error) {
+        manageInstitutesMessage.textContent = error.message || 'Could not create the institute.';
+        manageInstitutesMessage.classList.add('error');
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+
+  if (createInstituteAdminForm) {
+    createInstituteAdminForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const button = document.getElementById('createInstituteAdminButton');
+      button.disabled = true;
+      createInstituteAdminMessage.textContent = '';
+      createInstituteAdminMessage.classList.remove('error');
+      try {
+        const formData = new FormData(createInstituteAdminForm);
+        const response = await fetch(manageApiUrl, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': manageCsrfToken
+          },
+          body: JSON.stringify({
+            action: 'create_institute_admin',
+            admin_name: formData.get('admin_name'),
+            admin_email: formData.get('admin_email'),
+            institute_id: formData.get('institute_id'),
+            admin_password: formData.get('admin_password')
+          })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.message || 'Could not create the institute admin.');
+        }
+        createInstituteAdminForm.reset();
+        createInstituteAdminMessage.textContent = result.message;
+        await loadLearners();
+      } catch (error) {
+        createInstituteAdminMessage.textContent = error.message || 'Could not create the institute admin.';
+        createInstituteAdminMessage.classList.add('error');
+      } finally {
+        button.disabled = false;
+      }
+    });
   }
 
   async function updateLearnerStatus(learner, isActive, action) {
@@ -677,9 +1000,46 @@ $csrfToken = $_SESSION['csrf_token'];
     }
   }
 
+  async function updateLearnerRole(learner, roleName, action) {
+    action.disabled = true;
+    const message = roleName === 'learner' ? manageInstituteAdminsMessage : manageLearnersMessage;
+    message.textContent = '';
+    message.classList.remove('error');
+    try {
+      const response = await fetch(manageApiUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': manageCsrfToken
+        },
+        body: JSON.stringify({
+          action: 'change_role',
+          learner_id: learner.id,
+          role_name: roleName
+        })
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || 'Could not change the account role.');
+      }
+      message.textContent = result.message;
+      await loadLearners();
+    } catch (error) {
+      message.textContent = error.message || 'Could not change the account role.';
+      message.classList.add('error');
+      action.disabled = false;
+    }
+  }
+
   manageTabs.forEach(function (tab) {
     tab.addEventListener('click', function () {
       setManageTab(tab.dataset.manageTab, true);
+    });
+  });
+  instituteTabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      setInstituteTab(tab.dataset.instituteTab);
     });
   });
   if (learnerSearch) {
@@ -688,7 +1048,7 @@ $csrfToken = $_SESSION['csrf_token'];
     });
   }
   if (manageTabs.length) {
-    const initialManageTab = initialHash === 'manage-institutes' ? 'institutes' : 'learners';
+    const initialManageTab = initialHash === 'manage-institutes' && document.getElementById('manage-institutes') ? 'institutes' : 'learners';
     setManageTab(initialManageTab, initialHash.indexOf('manage-') === 0);
     if (<?= json_encode($initialView === 'manage') ?>) loadLearners();
   }

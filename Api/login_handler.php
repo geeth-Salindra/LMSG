@@ -56,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $stmt = $pdo->prepare(
             "SELECT learners.id, learners.full_name, learners.password,
+                    learners.institute_id,
                     learners.is_active, roles.name AS role_name
              FROM learners
              INNER JOIN roles ON roles.id = learners.role_id
@@ -75,12 +76,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'code' => 'account_deactivated'
             ]);
         }
-
         // 5. Login success: remember the account and role in the session
         session_regenerate_id(true);   // new session ID for safety
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_name'] = $user['full_name'];
         $_SESSION['user_role'] = $user['role_name'];
+        $_SESSION['institute_id'] = $user['institute_id'];
         $_SESSION['learner_id'] = $user['id'];
         $_SESSION['learner_name'] = $user['full_name'];
 

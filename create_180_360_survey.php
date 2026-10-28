@@ -119,7 +119,7 @@ $initial = mb_strtoupper(mb_substr($learnerName, 0, 1));
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
       360/180 Surveys
     </a>
-    <?php if (($_SESSION['user_role'] ?? '') === 'super_admin'): ?>
+    <?php if (in_array($_SESSION['user_role'] ?? '', ['super_admin', 'institute_admin'], true)): ?>
     <a class="nav-btn nav-link manage-nav" href="manage.php">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.7 2.94-.08-.03a1.7 1.7 0 0 0-1.83.23l-.07.05h-3.4l-.03-.08a1.7 1.7 0 0 0-1.48-1.16l-.09-.01-2.94-1.7.03-.08a1.7 1.7 0 0 0-.23-1.83l-.05-.07v-3.4l.08-.03a1.7 1.7 0 0 0 1.16-1.48l.01-.09 1.7-2.94.08.03a1.7 1.7 0 0 0 1.83-.23l.07-.05h3.4l.03.08a1.7 1.7 0 0 0 1.48 1.16l.09.01 2.94 1.7-.03.08a1.7 1.7 0 0 0 .23 1.83l.05.07v3.4l-.08.03A1.7 1.7 0 0 0 19.4 15z"/></svg>
       Manage
