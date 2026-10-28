@@ -206,6 +206,27 @@ $csrfToken = $_SESSION['csrf_token'];
   .manage-tab{padding:12px 16px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);font-size:14px;font-weight:700;}
   .manage-tab.active{border-bottom-color:var(--accent);color:var(--accent);}
   .manage-panel[hidden]{display:none;}
+  .manage-toolbar{display:flex;justify-content:flex-end;margin-bottom:16px;}
+  .add-account-button{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border:0;border-radius:10px;background:var(--grad);color:#fff;font-size:14px;font-weight:700;box-shadow:0 4px 12px rgba(23,74,48,.16);}
+  .add-account-button:hover{filter:brightness(1.08);}
+  .add-account-button:focus-visible,.account-dialog-close:focus-visible{outline:3px solid rgba(47,129,82,.35);outline-offset:2px;}
+  .account-dialog{width:min(560px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 32px);padding:0;border:0;background:transparent;overflow:visible;}
+  .account-dialog::backdrop{background:rgba(12,24,16,.55);backdrop-filter:blur(3px);}
+  .account-dialog[open]{animation:dialog-enter .18s ease-out;}
+  .account-dialog .box{max-height:calc(100dvh - 32px);overflow-y:auto;padding:28px;box-shadow:0 24px 70px rgba(10,25,15,.24);}
+  .account-dialog-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:8px;}
+  .account-dialog-heading h3{margin:0 0 6px;font-size:19px;}
+  .account-dialog-heading p{margin:0;color:var(--muted);font-size:14px;line-height:1.5;}
+  .account-dialog-close{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;padding:0;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--muted);font-size:22px;line-height:1;}
+  .account-dialog-close:hover{background:var(--soft);color:var(--text);}
+  .account-form{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;margin-top:20px;}
+  .account-form label{display:block;margin:0 0 6px;font-size:13px;font-weight:700;color:var(--text);}
+  .account-form input,.account-form select{width:100%;max-width:none;margin:0 0 16px;padding:11px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--text);font:inherit;}
+  .account-form input:focus,.account-form select:focus{outline:2px solid rgba(47,129,82,.35);border-color:var(--accent);}
+  .account-form .form-field{min-width:0;}
+  .account-form .form-field.full-width,.account-form > button,.account-form > .manage-message{grid-column:1/-1;}
+  .account-form > button{justify-self:end;min-width:160px;}
+  @keyframes dialog-enter{from{opacity:0;transform:translateY(8px) scale(.99);}to{opacity:1;transform:translateY(0) scale(1);}}
   .learner-search{width:100%;max-width:420px;margin:0 0 18px;padding:11px 14px;border:1px solid var(--border);border-radius:10px;font:inherit;}
   .learner-search:focus{outline:2px solid var(--accent);outline-offset:1px;}
   .learner-table-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 24px rgba(15,35,22,0.05);}
@@ -264,6 +285,13 @@ $csrfToken = $_SESSION['csrf_token'];
     .topbar{padding:12px 16px;}
     .content{padding:20px 16px;}
     .user-info{display:none;}
+  }
+  @media (max-width:520px){
+    .account-dialog .box{padding:22px 18px;}
+    .account-dialog-heading{flex-wrap:wrap;}
+    .account-dialog-heading > .add-account-button{width:100%;justify-content:center;}
+    .account-form{grid-template-columns:1fr;}
+    .account-form > button{width:100%;}
   }
 </style>
 </head>
@@ -381,26 +409,44 @@ $csrfToken = $_SESSION['csrf_token'];
           <?php endif; ?>
         </div>
         <section class="manage-panel" id="manage-learners" role="tabpanel" aria-labelledby="learnersTab">
-          <div class="box">
-            <h3>Create Learner</h3>
-            <p>Create a learner account for an active institute.</p>
-            <form id="createLearnerForm">
-              <label for="newLearnerName">Learner name</label>
-              <input class="learner-search" id="newLearnerName" name="full_name" maxlength="100" required>
-              <label for="newLearnerEmail">Learner email</label>
-              <input class="learner-search" id="newLearnerEmail" name="email" type="email" maxlength="150" required>
-              <?php if ($isSuperAdmin): ?>
-              <label for="newLearnerInstitute">Institute</label>
-              <select class="learner-search" id="newLearnerInstitute" name="institute_id" required>
-                <option value="">Loading institutes...</option>
-              </select>
-              <?php endif; ?>
-              <label for="newLearnerPassword">Temporary password (minimum 6 characters)</label>
-              <input class="learner-search" id="newLearnerPassword" name="password" type="password" minlength="6" required>
-              <button class="learner-action" type="submit" id="createLearnerButton"<?= $isSuperAdmin ? ' disabled' : '' ?>>Create learner</button>
-            </form>
-            <p class="manage-message" id="createLearnerMessage" aria-live="polite"></p>
+          <div class="manage-toolbar">
+            <button type="button" class="add-account-button" data-dialog-open="createLearnerDialog"><span aria-hidden="true">+</span> Add learner</button>
           </div>
+          <dialog class="account-dialog" id="createLearnerDialog" aria-labelledby="createLearnerTitle">
+            <div class="box">
+              <div class="account-dialog-heading">
+                <div>
+                  <h3 id="createLearnerTitle">Create learner</h3>
+                  <p>Create a learner account for an active institute.</p>
+                </div>
+                <button type="button" class="account-dialog-close" data-dialog-close aria-label="Close dialog">&times;</button>
+              </div>
+              <form id="createLearnerForm" class="account-form">
+                <div class="form-field">
+                  <label for="newLearnerName">Learner name</label>
+                  <input id="newLearnerName" name="full_name" maxlength="100" required>
+                </div>
+                <div class="form-field">
+                  <label for="newLearnerEmail">Learner email</label>
+                  <input id="newLearnerEmail" name="email" type="email" maxlength="150" required>
+                </div>
+                <?php if ($isSuperAdmin): ?>
+                <div class="form-field full-width">
+                  <label for="newLearnerInstitute">Institute</label>
+                  <select id="newLearnerInstitute" name="institute_id" required>
+                    <option value="">Loading institutes...</option>
+                  </select>
+                </div>
+                <?php endif; ?>
+                <div class="form-field full-width">
+                  <label for="newLearnerPassword">Temporary password (minimum 6 characters)</label>
+                  <input id="newLearnerPassword" name="password" type="password" minlength="6" required>
+                </div>
+                <p class="manage-message" id="createLearnerMessage" aria-live="polite"></p>
+                <button class="learner-action" type="submit" id="createLearnerButton"<?= $isSuperAdmin ? ' disabled' : '' ?>>Create learner</button>
+              </form>
+            </div>
+          </dialog>
           <label for="learnerSearch">Search learners</label>
           <input class="learner-search" type="search" id="learnerSearch" placeholder="Search by name, email, or status">
           <p class="manage-message" id="manageLearnersMessage" aria-live="polite">Loading learners...</p>
@@ -462,22 +508,46 @@ $csrfToken = $_SESSION['csrf_token'];
           </section>
           <section class="manage-panel" id="institute-admins-panel" role="tabpanel" hidden>
             <div class="box">
-              <h3>Institute Admins</h3>
-            <p><?= $isSuperAdmin ? 'Review institute admin requests and view institute assignments.' : 'Request additional institute admins for your institute; a Super Admin must approve them.' ?></p>
-            <form id="createInstituteAdminForm" class="create-institute-admin-form">
-              <label for="newInstituteAdminName">Administrator name</label>
-              <input class="learner-search" id="newInstituteAdminName" name="admin_name" maxlength="100" required>
-              <label for="newInstituteAdminEmail">Administrator email</label>
-              <input class="learner-search" id="newInstituteAdminEmail" name="admin_email" type="email" maxlength="150" required>
-              <label for="newInstituteAdminInstitute">Institute</label>
-              <select class="learner-search" id="newInstituteAdminInstitute" name="institute_id" required>
-                <option value="">Loading institutes...</option>
-              </select>
-              <label for="newInstituteAdminPassword">Temporary password (minimum 6 characters)</label>
-              <input class="learner-search" id="newInstituteAdminPassword" name="admin_password" type="password" minlength="6" required>
-              <button class="learner-action" type="submit" id="createInstituteAdminButton"><?= $isSuperAdmin ? 'Create institute admin' : 'Request institute admin' ?></button>
-            </form>
-            <p class="manage-message create-institute-admin-message" id="createInstituteAdminMessage" aria-live="polite"></p>
+              <div class="account-dialog-heading">
+                <div>
+                  <h3>Institute Admins</h3>
+                  <p><?= $isSuperAdmin ? 'Review institute admin requests and view institute assignments.' : 'Request additional institute admins for your institute; a Super Admin must approve them.' ?></p>
+                </div>
+                <button type="button" class="add-account-button" data-dialog-open="createInstituteAdminDialog"><span aria-hidden="true">+</span> Add institute admin</button>
+              </div>
+              <dialog class="account-dialog" id="createInstituteAdminDialog" aria-labelledby="createInstituteAdminTitle">
+                <div class="box">
+                  <div class="account-dialog-heading">
+                    <div>
+                      <h3 id="createInstituteAdminTitle"><?= $isSuperAdmin ? 'Create institute admin' : 'Request institute admin' ?></h3>
+                      <p><?= $isSuperAdmin ? 'Create an active account for the selected institute.' : 'A Super Admin must approve the request before the account can sign in.' ?></p>
+                    </div>
+                    <button type="button" class="account-dialog-close" data-dialog-close aria-label="Close dialog">&times;</button>
+                  </div>
+                  <form id="createInstituteAdminForm" class="create-institute-admin-form account-form">
+                    <div class="form-field">
+                      <label for="newInstituteAdminName">Administrator name</label>
+                      <input id="newInstituteAdminName" name="admin_name" maxlength="100" required>
+                    </div>
+                    <div class="form-field">
+                      <label for="newInstituteAdminEmail">Administrator email</label>
+                      <input id="newInstituteAdminEmail" name="admin_email" type="email" maxlength="150" required>
+                    </div>
+                    <div class="form-field full-width">
+                      <label for="newInstituteAdminInstitute">Institute</label>
+                      <select id="newInstituteAdminInstitute" name="institute_id" required>
+                        <option value="">Loading institutes...</option>
+                      </select>
+                    </div>
+                    <div class="form-field full-width">
+                      <label for="newInstituteAdminPassword">Temporary password (minimum 6 characters)</label>
+                      <input id="newInstituteAdminPassword" name="admin_password" type="password" minlength="6" required>
+                    </div>
+                    <p class="manage-message create-institute-admin-message" id="createInstituteAdminMessage" aria-live="polite"></p>
+                    <button class="learner-action" type="submit" id="createInstituteAdminButton"><?= $isSuperAdmin ? 'Create institute admin' : 'Request institute admin' ?></button>
+                  </form>
+                </div>
+              </dialog>
             <p class="manage-message" id="manageInstituteAdminsMessage" aria-live="polite">Loading institute admins...</p>
               <div class="learner-table-wrap">
                 <table class="learner-table">
@@ -519,19 +589,41 @@ $csrfToken = $_SESSION['csrf_token'];
           </section>
           <section class="manage-panel" id="institute-admins-panel" role="tabpanel" hidden>
           <div class="box">
-            <h3>Institute Admins</h3>
-            <p>Institute admins have learner permissions plus additional management features.</p>
-            <p>Promote learners from the Manage Learners tab; demote institute admins here.</p>
-            <form id="createMyInstituteAdminForm" class="create-institute-admin-form">
-              <label for="myInstituteAdminName">Administrator name</label>
-              <input class="learner-search" id="myInstituteAdminName" name="admin_name" maxlength="100" required>
-              <label for="myInstituteAdminEmail">Administrator email</label>
-              <input class="learner-search" id="myInstituteAdminEmail" name="admin_email" type="email" maxlength="150" required>
-              <label for="myInstituteAdminPassword">Temporary password (minimum 6 characters)</label>
-              <input class="learner-search" id="myInstituteAdminPassword" name="admin_password" type="password" minlength="6" required>
-              <button class="learner-action" type="submit">Create institute admin</button>
-            </form>
-            <p class="manage-message create-institute-admin-message" id="createMyInstituteAdminMessage" aria-live="polite"></p>
+            <div class="account-dialog-heading">
+              <div>
+                <h3>Institute Admins</h3>
+                <p>Institute admins have learner permissions plus additional management features.</p>
+                <p>Promote learners from the Manage Learners tab; demote institute admins here.</p>
+              </div>
+              <button type="button" class="add-account-button" data-dialog-open="createMyInstituteAdminDialog"><span aria-hidden="true">+</span> Add institute admin</button>
+            </div>
+            <dialog class="account-dialog" id="createMyInstituteAdminDialog" aria-labelledby="createMyInstituteAdminTitle">
+              <div class="box">
+                <div class="account-dialog-heading">
+                  <div>
+                    <h3 id="createMyInstituteAdminTitle">Request institute admin</h3>
+                    <p>A Super Admin must approve the request before the account can sign in.</p>
+                  </div>
+                  <button type="button" class="account-dialog-close" data-dialog-close aria-label="Close dialog">&times;</button>
+                </div>
+                <form id="createMyInstituteAdminForm" class="create-institute-admin-form account-form">
+                  <div class="form-field full-width">
+                    <label for="myInstituteAdminName">Administrator name</label>
+                    <input id="myInstituteAdminName" name="admin_name" maxlength="100" required>
+                  </div>
+                  <div class="form-field full-width">
+                    <label for="myInstituteAdminEmail">Administrator email</label>
+                    <input id="myInstituteAdminEmail" name="admin_email" type="email" maxlength="150" required>
+                  </div>
+                  <div class="form-field full-width">
+                    <label for="myInstituteAdminPassword">Temporary password (minimum 6 characters)</label>
+                    <input id="myInstituteAdminPassword" name="admin_password" type="password" minlength="6" required>
+                  </div>
+                  <p class="manage-message create-institute-admin-message" id="createMyInstituteAdminMessage" aria-live="polite"></p>
+                  <button class="learner-action" type="submit">Request institute admin</button>
+                </form>
+              </div>
+            </dialog>
             <p class="manage-message" id="manageInstituteAdminsMessage" aria-live="polite">Loading institute admins...</p>
             <div class="learner-table-wrap">
               <table class="learner-table">
@@ -631,6 +723,24 @@ $csrfToken = $_SESSION['csrf_token'];
   const manageApiUrl = 'Api/manage_handler.php';
   const isInstituteAdmin = <?= json_encode($isInstituteAdmin) ?>;
   let allLearners = [];
+
+  document.querySelectorAll('[data-dialog-open]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      const dialog = document.getElementById(button.dataset.dialogOpen);
+      if (dialog && !dialog.open) dialog.showModal();
+    });
+  });
+  document.querySelectorAll('[data-dialog-close]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      const dialog = button.closest('dialog');
+      if (dialog) dialog.close();
+    });
+  });
+  document.querySelectorAll('.account-dialog').forEach(function (dialog) {
+    dialog.addEventListener('click', function (event) {
+      if (event.target === dialog) dialog.close();
+    });
+  });
 
   function setManageTab(tabName, updateHash) {
     const activeTab = tabName === 'institutes' ? 'institutes' : 'learners';
